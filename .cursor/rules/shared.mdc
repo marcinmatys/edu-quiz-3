@@ -3,7 +3,6 @@ description:
 globs: 
 alwaysApply: true
 ---
-
 # AI Rules for edu-quiz
 
 EduQuizAI is an educational application designed for creating and conducting quizzes, primarily at the school level.
@@ -21,9 +20,18 @@ and a student who browses, launches, and completes quizzes, receiving immediate 
 
 ## Project Structure
 
-- `./src` - source code
-- `./src/components` - Client-side components written in React
-- `./src/components/ui` - Client-side components from Shadcn/ui
+- `/frontend/` - React frontend
+- `/frontend/src` - source code
+- `/frontend/src/components` - Client-side components written in React
+- `/frontend/src/components/ui` - Client-side components from Shadcn/ui
+- `/backend/` - FastAPI backend
+- `/backend/app/main.py` - entry point
+- `/backend/app/routers/` - API endpoints
+- `/backend/app/models/` - SQLAlchemy models
+- `/backend/app/schemas/` - Pydantic schemas
+- `/backend/app/db/` - database setup
+- `/backend/app/core/` - settings, utils
+- `/README.md` - Project-level documentation
 
 ## Coding practices
 
