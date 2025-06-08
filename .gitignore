@@ -38,3 +38,6 @@ backend/.cache/
 
 # Vite cache
 .vite/
+
+# Database
+data/edu-quiz.db

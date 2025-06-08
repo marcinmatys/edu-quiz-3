@@ -1,1 +1,1 @@
-# Routers package for FastAPI endpoints
+# Routers package for API endpoints
