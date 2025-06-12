@@ -1,0 +1,15 @@
+---
+description: 
+globs: **/*.py
+alwaysApply: false
+---
+## Guidelines for Python
+
+- Use snake_case for variable and function names. 
+- Use CamelCase for class names. Follow PEP 8 style guidelines. 
+- Include type hints for function parameters and return types. 
+- Write docstrings for all public modules, classes, functions, and methods.
+- Use Pydantic models for request and response validation with strict type checking and custom validators
+- Implement dependency injection for services and database sessions to improve testability and resource management
+
+- Use path operation decorators consistently with appropriate HTTP methods (GET for retrieval, POST for creation, etc.)

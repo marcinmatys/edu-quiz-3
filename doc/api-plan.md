@@ -114,7 +114,7 @@ This document outlines the REST API for the EDU-QUIZ application, designed based
   ```
 - **Error Response**: `401 Unauthorized`
 
-#### POST /quizzes/generate
+#### POST /quizzes
 
 - **Description**: Generates a new quiz using AI and saves it as a 'draft'.
 - **Authentication**: Required (Admin only).
@@ -284,7 +284,7 @@ This document outlines the REST API for the EDU-QUIZ application, designed based
 
 - **Validation**: All incoming request bodies (`POST`, `PUT`) will be validated against Pydantic schemas that mirror the constraints defined in the database schema (e.g., required fields, max length, data types). If validation fails, the API will return a `422 Unprocessable Entity` response with details about the error.
 - **Business Logic**:
-  - **AI Generation**: The `POST /quizzes/generate` endpoint encapsulates the logic of calling an external AI service, parsing its response, and structuring the data into the database format.
+  - **AI Generation**: The `POST /quizzes` endpoint encapsulates the logic of calling an external AI service, parsing its response, and structuring the data into the database format.
   - **Immediate Feedback**: The `POST /quizzes/{quiz_id}/check-answer` endpoint is a dedicated RPC-style endpoint to implement the immediate feedback feature securely.
   - **Status Flow**: The `status` field (`draft` -> `published`) of a quiz is managed via the `PUT /quizzes/{quiz_id}` endpoint. The API will ensure that only published quizzes are visible to students.
   - **Result Uniqueness**: The database constraint `UNIQUE (user_id, quiz_id)` on the `results` table is handled by the `POST /quizzes/{quiz_id}/results` endpoint, which will perform an "upsert" (update or insert) operation to store only the latest score for a user on a given quiz. 

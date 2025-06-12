@@ -75,4 +75,48 @@ On startup, the application automatically:
 
 1. Create or update a router file in `app/routers/`
 2. Add your endpoint functions
-3. Include the router in `app/main.py` 
+3. Include the router in `app/main.py`
+
+## Running Tests
+
+The application includes a comprehensive test suite for unit and integration testing. To run the tests:
+
+1. Make sure you have installed the development dependencies:
+```bash
+pip install -r requirements-dev.txt
+```
+
+2. Run all tests:
+```bash
+pytest
+```
+
+3. Run specific test categories:
+```bash
+# Run unit tests only
+pytest -m unit
+
+# Run integration tests only
+pytest -m integration
+
+# Run API tests only
+pytest -m api
+```
+
+4. Run tests with coverage report:
+```bash
+pytest --cov=app
+```
+
+5. Generate HTML coverage report:
+```bash
+pytest --cov=app --cov-report=html
+```
+
+The coverage report will be available in the `htmlcov` directory.
+
+## Rate Limiting
+
+The API includes rate limiting for certain endpoints, particularly those that use external AI services:
+
+- `/api/v1/quizzes`: 5 requests per minute with a burst capability of 5 requests 

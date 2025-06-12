@@ -4,21 +4,34 @@ from app.config import settings
 from app.db import create_tables, SessionLocal
 from app.db.seed import seed_database
 from app.routers import debug
+from .core.middleware import RateLimitingMiddleware
+from .routers import quizzes
 
 # Initialize FastAPI app
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    description=settings.DESCRIPTION,
-    version=settings.VERSION,
+    description="API for EduQuiz application",
+    version="1.0.0",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+    openapi_url="/api/openapi.json"
 )
 
 # CORS settings (allow all origins for dev)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+# Configure rate limiting
+app.add_middleware(
+    RateLimitingMiddleware,
+    rate_limits={
+        "/api/v1/quizzes": {"rate": 5, "per": 60, "burst": 5}  # 5 requests per minute, burst of 5
+    }
 )
 
 # Initialize database tables and seed data on startup
@@ -40,7 +53,13 @@ def ping():
 
 # Include routers
 app.include_router(debug.router)
+app.include_router(quizzes.router)
 
 # Import and include routers here for future scalability
 # from .routers import example_router
 # app.include_router(example_router)
+
+@app.get("/api/health")
+async def health_check():
+    """Health check endpoint"""
+    return {"status": "ok"}
