@@ -2,7 +2,7 @@ Jako starszy programista frontendu Twoim zadaniem jest stworzenie szczegółoweg
 
 Wybrany widok:
 <selected_view>
-1. Widok Logowania
+1. Widok Panelu Administratora
 </selected_view>
 
 Najpierw przejrzyj następujące informacje:
@@ -19,63 +19,133 @@ Najpierw przejrzyj następujące informacje:
 
 3. User Stories:
 <user_stories>
-### Autentykacja
 
-*   ID: US-001
-*   Tytuł: Logowanie do systemu
-*   Opis: Jako użytkownik (administrator lub uczeń) chcę móc zalogować się do aplikacji przy użyciu mojej nazwy użytkownika i hasła, aby uzyskać dostęp do przypisanych mi funkcjonalności.
+*   ID: US-002
+*   Tytuł: Generowanie nowego quizu przez AI
+*   Opis: Jako administrator chcę wygenerować nowy quiz przy użyciu AI, podając jego temat, liczbę pytań i poziom zaawansowania, aby szybko stworzyć materiał edukacyjny.
 *   Kryteria akceptacji:
-    *   System wyświetla formularz logowania z polami na nazwę użytkownika i hasło.
-    *   Po wprowadzeniu poprawnych danych administratora i kliknięciu "Zaloguj", użytkownik jest przekierowany do panelu administratora.
-    *   Po wprowadzeniu poprawnych danych ucznia i kliknięciu "Zaloguj", użytkownik jest przekierowany do listy quizów.
-    *   W przypadku wprowadzenia nieprawidłowych danych, system wyświetla komunikat o błędzie.
-    *   Dane logowania są bezpiecznie przechowywane w bazie danych.
+    *   W panelu administratora znajduje się opcja "Stwórz nowy quiz".
+    *   Po jej wybraniu wyświetla się formularz z polami: "Temat", "Liczba pytań", "Poziom zaawansowania" (lista rozwijana, klasy I-VIII).
+    *   Pola formularza są walidowane (np. liczba pytań musi być dodatnią liczbą całkowitą).
+    *   Po zatwierdzeniu formularza system wysyła zapytanie do AI i wyświetla informację o trwającym procesie generowania.
+    *   Wygenerowany quiz (pytania i 4 opcje odpowiedzi dla każdego) jest prezentowany do weryfikacji.
+
+*   ID: US-003
+*   Tytuł: Weryfikacja i edycja wygenerowanego quizu
+*   Opis: Jako administrator chcę przejrzeć wygenerowany przez AI quiz i mieć możliwość edycji każdego pytania oraz odpowiedzi, aby zapewnić jego jakość merytoryczną przed publikacją.
+*   Kryteria akceptacji:
+    *   Wygenerowany quiz jest wyświetlany w formie czytelnej listy pytań i odpowiedzi.
+    *   Przy każdym pytaniu i odpowiedzi istnieje opcja "Edytuj".
+    *   Administrator może zmodyfikować treść pytania oraz każdej z czterech odpowiedzi.
+    *   Administrator może oznaczyć inną odpowiedź jako poprawną.
+    *   Wprowadzone zmiany są zapisywane.
+
+*   ID: US-004
+*   Tytuł: Odrzucenie wygenerowanego quizu
+*   Opis: Jako administrator chcę mieć możliwość odrzucenia całego wygenerowanego quizu, jeśli jego jakość jest niezadowalająca.
+*   Kryteria akceptacji:
+    *   Na ekranie weryfikacji quizu znajduje się przycisk "Odrzuć" lub "Usuń".
+    *   Po jego kliknięciu i potwierdzeniu, quiz jest trwale usuwany z systemu.
+    *   Administrator jest informowany o pomyślnym usunięciu quizu.
+
+*   ID: US-005
+*   Tytuł: Publikacja quizu
+*   Opis: Jako administrator chcę opublikować zweryfikowany i poprawiony quiz, aby stał się on widoczny i dostępny dla uczniów.
+*   Kryteria akceptacji:
+    *   Na ekranie weryfikacji quizu znajduje się przycisk "Zatwierdź i publikuj".
+    *   Po jego kliknięciu quiz zmienia status na "opublikowany".
+    *   Opublikowany quiz pojawia się na liście quizów dostępnej dla ucznia.
+    *   Administrator widzi na liście quizów, które z nich mają status "opublikowany", a które "roboczy".
+
+*   ID: US-006
+*   Tytuł: Zarządzanie listą quizów
+*   Opis: Jako administrator chcę widzieć listę wszystkich stworzonych quizów (zarówno roboczych, jak i opublikowanych), aby móc nimi zarządzać.
+*   Kryteria akceptacji:
+    *   Panel administratora wyświetla listę wszystkich quizów.
+    *   Lista zawiera informacje takie jak: tytuł/temat, poziom zaawansowania, liczba pytań, status (roboczy/opublikowany).
+    *   Z poziomu listy administrator może wejść w edycję quizu roboczego.
+    *   Z poziomu listy administrator może usunąć dowolny quiz (po potwierdzeniu).
 </user_stories>
 
 4. Endpoint Description:
 <endpoint_description>
-#### POST /token
 
-- **Description**: Authenticates a user and returns a JWT access token.
-- **Request Body**: `application/x-www-form-urlencoded`
-  - `username` (string, required)
-  - `password` (string, required)
-- **Success Response**: `200 OK`
-  ```json
-  {
-    "access_token": "your.jwt.token",
-    "token_type": "bearer"
-  }
-  ```
-- **Error Response**: `401 Unauthorized`
-  ```json
-  {
-    "detail": "Incorrect username or password"
-  }
-  ```
----
+#### GET /quizzes
 
-  #### GET /users/me
-
-- **Description**: Retrieves the profile of the currently authenticated user.
+- **Description**: Retrieves a list of quizzes. Admins see all quizzes; students see only 'published' ones.
 - **Authentication**: Required.
+- **Query Parameters**:
+  - `sort_by` (string, optional, e.g., 'level'): Field to sort by. Defaults to `level`.
+  - `order` (string, optional, 'asc' or 'desc'): Sort order. Defaults to `asc`.
+  - `status` (string, optional, 'draft' or 'published'): Filters by status. (Admin only).
 - **Success Response**: `200 OK`
   ```json
-  {
-    "id": 1,
-    "username": "admin",
-    "role": "admin",
-    "created_at": "2023-10-27T10:00:00Z"
-  }
+  [
+    {
+      "id": 1,
+      "title": "Historia Polski",
+      "status": "published",
+      "level_id": 5,
+      "creator_id": 1,
+      "question_count": 10,
+      "last_result": { // Present only for students who have a result
+        "score": 8,
+        "max_score": 10
+      },
+      "updated_at": "2023-10-27T12:00:00Z"
+    }
+  ]
   ```
 - **Error Response**: `401 Unauthorized`
 
----
+--
+
+#### PUT /quizzes/{quiz_id}
+
+- **Description**: Updates a quiz. Used by admins to edit questions/answers and to change the status from 'draft' to 'published'.
+- **Authentication**: Required (Admin only).
+- **Request Body**:
+  ```json
+  {
+    "title": "Nowy Tytuł Quizu",
+    "status": "published", // Optional: change status
+    "level_id": 4,
+    "questions": [
+      {
+        "id": 1, // Include ID for existing questions
+        "text": "Zaktualizowane pytanie?",
+        "answers": [
+          {"id": 1, "text": "Zmieniona odp A", "is_correct": false},
+          {"id": 2, "text": "Zmieniona odp B", "is_correct": true}
+          // ... other answers
+        ]
+      },
+      {
+        "text": "Nowe pytanie?", // No ID for new questions
+        "answers": [
+            // ... new answers
+        ]
+      }
+    ]
+  }
+  ```
+- **Success Response**: `200 OK` (with the updated quiz object in the body).
+- **Error Response**: `404 Not Found`, `422 Unprocessable Entity`.
+
+--
+
+#### DELETE /quizzes/{quiz_id}
+
+- **Description**: Deletes a quiz and all its associated questions, answers, and results (due to DB cascade).
+- **Authentication**: Required (Admin only).
+- **Success Response**: `204 No Content`
+- **Error Response**: `404 Not Found`
+
 </endpoint_description>
 
 5. Endpoint Implementation:
 <endpoint_implementation>
-@token.py @users.py
+@quizzes.py
 </endpoint_implementation>
 
 6. Type Definitions:
@@ -129,7 +199,7 @@ Po przeprowadzeniu analizy dostarcz plan wdrożenia w formacie Markdown z nastę
 
 Upewnij się, że Twój plan jest zgodny z PRD, historyjkami użytkownika i uwzględnia dostarczony stack technologiczny.
 
-Ostateczne wyniki powinny być w języku polskim i zapisane w pliku o nazwie doc/login-view-implementation-plan.md. Nie uwzględniaj żadnej analizy i planowania w końcowym wyniku.
+Ostateczne wyniki powinny być w języku polskim i zapisane w pliku o nazwie doc/view-implementation-plan-admin-quizzes.md. Nie uwzględniaj żadnej analizy i planowania w końcowym wyniku.
 
 Oto przykład tego, jak powinien wyglądać plik wyjściowy (treść jest do zastąpienia):
 
@@ -181,4 +251,4 @@ Oto przykład tego, jak powinien wyglądać plik wyjściowy (treść jest do zas
 3. [...]
 ```
 
-Rozpocznij analizę i planowanie wyłącznie dla wybranego widoku (selected_view) już teraz. Twój ostateczny wynik powinien składać się wyłącznie z planu wdrożenia w języku polskim w formacie markdown, który zapiszesz w pliku doc/login-view-implementation-plan.md i nie powinien powielać ani powtarzać żadnej pracy wykonanej w podziale implementacji.
+Rozpocznij analizę i planowanie wyłącznie dla wybranego widoku (selected_view) już teraz. Twój ostateczny wynik powinien składać się wyłącznie z planu wdrożenia w języku polskim w formacie markdown, który zapiszesz w pliku doc/view-implementation-plan-admin-quizzes.md i nie powinien powielać ani powtarzać żadnej pracy wykonanej w podziale implementacji.
