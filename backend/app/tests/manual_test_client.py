@@ -57,13 +57,16 @@ class APIClient:
         """Create a new quiz with AI generation"""
         url = f"{self.base_url}/api/v1/quizzes/"
         
-        async with httpx.AsyncClient() as client:
+        # Use a longer timeout (120 seconds) for quiz creation since AI generation can take time
+        async with httpx.AsyncClient(timeout=120.0) as client:
             try:
+                print("Sending request to create quiz. This may take some time due to AI generation...")
                 response = await client.post(
                     url,
                     json=quiz_data,
                     headers=self.headers
                 )
+                print(f"Response status code: {response.status_code}")
                 response.raise_for_status()
                 return response.json()
             except httpx.HTTPStatusError as e:
@@ -71,6 +74,10 @@ class APIClient:
                 if e.response:
                     print(f"Response: {e.response.text}")
                 return {"error": str(e)}
+            except httpx.ReadTimeout:
+                print("Request timed out. The quiz generation is taking longer than expected.")
+                print("The quiz may still be created in the background.")
+                return {"error": "Request timed out. The operation might still be processing."}
     
     async def get_quiz(self, quiz_id: int) -> Dict[str, Any]:
         """Get a specific quiz by ID"""

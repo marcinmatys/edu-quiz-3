@@ -5,7 +5,7 @@ from app.db import create_tables, SessionLocal
 from app.db.seed import seed_database
 from app.routers import debug
 from .core.middleware import RateLimitingMiddleware
-from .routers import quizzes
+from .routers import quizzes, users, token
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -30,22 +30,20 @@ app.add_middleware(
 app.add_middleware(
     RateLimitingMiddleware,
     rate_limits={
-        "/api/v1/quizzes": {"rate": 5, "per": 60, "burst": 5}  # 5 requests per minute, burst of 5
+        "/api/v1/quizzes": {"rate": 5, "per": 60, "burst": 5},  # 5 requests per minute, burst of 5
+        "/api/v1/auth/token": {"rate": 3, "per": 60, "burst": 3}  # 3 login attempts per minute, burst of 3
     }
 )
 
 # Initialize database tables and seed data on startup
 @app.on_event("startup")
-def startup_db_client():
-    create_tables()
+async def startup_db_client():
+    await create_tables()
     print("Database tables created.")
     
-    # Seed the database with initial data
-    db = SessionLocal()
-    try:
-        seed_database(db)
-    finally:
-        db.close()
+    # Seed the database with initial data (async session, since seed_database is now async)
+    async with SessionLocal() as db:
+        await seed_database(db)
 
 @app.get("/ping")
 def ping():
@@ -54,6 +52,8 @@ def ping():
 # Include routers
 app.include_router(debug.router)
 app.include_router(quizzes.router)
+app.include_router(users.router, prefix="/api/v1/users")
+app.include_router(token.router)
 
 # Import and include routers here for future scalability
 # from .routers import example_router

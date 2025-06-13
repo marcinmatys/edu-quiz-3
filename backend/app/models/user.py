@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, CheckConstraint
+from sqlalchemy import Column, Integer, String, Text, CheckConstraint, Boolean
 from .base import Base, TimestampMixin
 
 class User(Base, TimestampMixin):
@@ -9,6 +9,7 @@ class User(Base, TimestampMixin):
     username = Column(String(64), nullable=False, unique=True)
     hashed_password = Column(Text, nullable=False)
     role = Column(String, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
     
     # Add constraint to ensure role is either 'admin' or 'student'
     __table_args__ = (

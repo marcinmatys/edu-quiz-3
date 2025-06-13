@@ -12,6 +12,7 @@ from ..schemas.quiz import (
     QuizReadDetail, QuizReadDetailStudent
 )
 from ..models.user import User
+from ..crud.quiz import get_quizzes
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +42,8 @@ async def create_quiz(
     
     Only admin users can use this endpoint.
     """
+
+    print(f"quiz_data========================: {quiz_data}")
     try:
         quiz = await quiz_service.create_ai_quiz(
             db=db,

@@ -66,40 +66,42 @@ class QuizService:
                 level_data
             )
             
-            # Start database transaction
-            async with db.begin():
-                # Create quiz record
-                quiz_obj = await create_quiz(
-                    db,
-                    title=title,
-                    level_id=quiz_data.level_id,
-                    creator_id=creator_id,
-                    status="draft"
+            # Create quiz record - no need to start a new transaction
+            # The session is likely already in a transaction from the router
+            quiz_obj = await create_quiz(
+                db,
+                title=title,
+                level_id=quiz_data.level_id,
+                creator_id=creator_id,
+                status="draft"
+            )
+            
+            # Create questions and answers
+            for q_data in questions_data:
+                # Create question
+                question_create = QuestionCreate(
+                    text=q_data["text"],
+                    answers=[
+                        AnswerCreate(
+                            text=a["text"],
+                            is_correct=a["is_correct"]
+                        ) for a in q_data["answers"]
+                    ]
                 )
                 
-                # Create questions and answers
-                for q_data in questions_data:
-                    # Create question
-                    question_create = QuestionCreate(
-                        text=q_data["text"],
-                        answers=[
-                            AnswerCreate(
-                                text=a["text"],
-                                is_correct=a["is_correct"]
-                            ) for a in q_data["answers"]
-                        ]
-                    )
-                    
-                    question_obj = await create_question(
-                        db,
-                        quiz_id=quiz_obj.id,
-                        question_data=question_create
-                    )
-                
-                # Get complete quiz with relationships for response
-                quiz_with_relations = await get_quiz(db, quiz_obj.id)
-                
-                return QuizGenerationResponse.model_validate(quiz_with_relations)
+                question_obj = await create_question(
+                    db,
+                    quiz_id=quiz_obj.id,
+                    question_data=question_create
+                )
+            
+            # Explicitly commit the transaction to ensure all changes are persisted
+            await db.commit()
+            
+            # Get complete quiz with relationships for response
+            quiz_with_relations = await get_quiz(db, quiz_obj.id)
+            
+            return QuizGenerationResponse.model_validate(quiz_with_relations)
                 
         except AIGenerationError as e:
             logger.error(f"AI generation error: {str(e)}")

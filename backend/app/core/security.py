@@ -4,13 +4,61 @@ from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
+from passlib.context import CryptContext
 
 from ..db import get_db
 from ..crud.user import get_user_by_username
 from ..core.config import settings
 from ..schemas.token import Token
 
+# Password hashing context
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """
+    Verify a password against a hash
+    
+    Args:
+        plain_password: Plain text password
+        hashed_password: Hashed password from database
+        
+    Returns:
+        True if password matches hash, False otherwise
+    """
+    return pwd_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password: str) -> str:
+    """
+    Hash a password
+    
+    Args:
+        password: Plain text password
+        
+    Returns:
+        Hashed password
+    """
+    return pwd_context.hash(password)
+
+async def authenticate_user(db: AsyncSession, username: str, password: str):
+    """
+    Authenticate a user
+    
+    Args:
+        db: Database session
+        username: Username to authenticate
+        password: Password to verify
+        
+    Returns:
+        User object if authentication successful, False otherwise
+    """
+    user = await get_user_by_username(db, username)
+    if not user:
+        return False
+    if not verify_password(password, user.hashed_password):
+        return False
+    return user
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
     """

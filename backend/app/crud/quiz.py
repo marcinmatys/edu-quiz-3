@@ -4,6 +4,7 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
 from ..models.quiz import Quiz
+from ..models.question import Question
 from ..schemas.quiz import QuizCreate
 
 async def create_quiz(
@@ -54,7 +55,7 @@ async def get_quiz(db: AsyncSession, quiz_id: int) -> Optional[Quiz]:
         select(Quiz)
         .options(
             selectinload(Quiz.questions)
-            .selectinload("answers")
+            .selectinload(Question.answers)
         )
         .where(Quiz.id == quiz_id)
     )

@@ -1,7 +1,7 @@
 import json
 import logging
 from typing import Dict, List, Optional, Tuple
-import openai
+from openai import OpenAI, AsyncOpenAI
 
 from ..core.config import settings
 
@@ -13,7 +13,10 @@ class AIQuizGeneratorService:
     def __init__(self, openai_api_key: Optional[str] = None):
         """Initialize the service with optional API key"""
         self.api_key = openai_api_key or settings.OPENAI_API_KEY
-        openai.api_key = self.api_key
+        logger.info(f"OpenAI API key========================: {self.api_key}")
+        print(f"OpenAI API key========================: {self.api_key}")
+        self.client = AsyncOpenAI(api_key=self.api_key)
+        self.sync_client = OpenAI(api_key=self.api_key)
     
     async def generate_quiz(self, topic: str, question_count: int, level_data: Dict) -> Tuple[List, str]:
         """
@@ -30,12 +33,20 @@ class AIQuizGeneratorService:
         prompt = self._create_prompt(topic, question_count, level_data)
         
         try:
+            # Try async call first
             response = await self._call_openai_api(prompt)
             parsed_data = self._parse_response(response)
             return parsed_data
         except Exception as e:
-            logger.error(f"Error generating quiz with AI: {str(e)}")
-            raise AIGenerationError(f"Failed to generate quiz: {str(e)}")
+            logger.warning(f"Async API call failed, trying synchronous fallback: {str(e)}")
+            try:
+                # Fallback to synchronous call
+                response = self._call_openai_api_sync(prompt)
+                parsed_data = self._parse_response(response)
+                return parsed_data
+            except Exception as e:
+                logger.error(f"Error generating quiz with AI: {str(e)}")
+                raise AIGenerationError(f"Failed to generate quiz: {str(e)}")
     
     def _create_prompt(self, topic: str, question_count: int, level_data: Dict) -> str:
         """
@@ -95,12 +106,13 @@ class AIQuizGeneratorService:
             String containing the API response content
         """
         try:
-            response = await openai.ChatCompletion.acreate(
+            response = await self.client.chat.completions.create(
                 model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "You are an educational quiz generator AI."},
                     {"role": "user", "content": prompt}
                 ],
+                timeout=120,
                 temperature=0.7,
                 max_tokens=3000,
                 top_p=1.0,
@@ -110,8 +122,38 @@ class AIQuizGeneratorService:
             )
             return response.choices[0].message.content
         except Exception as e:
-            logger.error(f"OpenAI API call failed: {str(e)}")
-            raise AIGenerationError(f"OpenAI API call failed: {str(e)}")
+            logger.exception("OpenAI API call failed")  # Logs full stack trace
+            raise AIGenerationError(f"OpenAI API call failed: {str(e)}") from e
+    
+    def _call_openai_api_sync(self, prompt: str) -> str:
+        """
+        Call the OpenAI API synchronously to generate quiz content
+        
+        Args:
+            prompt: The prompt to send to the API
+            
+        Returns:
+            String containing the API response content
+        """
+        try:
+            response = self.sync_client.chat.completions.create(
+                model="gpt-4.1",
+                messages=[
+                    {"role": "system", "content": "You are an educational quiz generator AI."},
+                    {"role": "user", "content": prompt}
+                ],
+                timeout=120,
+                temperature=0.7,
+                max_tokens=3000,
+                top_p=1.0,
+                frequency_penalty=0.0,
+                presence_penalty=0.0,
+                response_format={"type": "json_object"}
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            logger.exception("Synchronous OpenAI API call failed")  # Logs full stack trace
+            raise AIGenerationError(f"Synchronous OpenAI API call failed: {str(e)}") from e
     
     def _parse_response(self, response: str) -> Tuple[List, str]:
         """

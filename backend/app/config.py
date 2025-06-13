@@ -13,11 +13,14 @@ class Settings:
     DESCRIPTION = "API for the EduQuiz application"
     
     # Database settings
-    DATABASE_URL = f"sqlite:///{DATA_DIR}/edu-quiz.db"
+    DATABASE_URL = f"sqlite+aiosqlite:///{DATA_DIR}/edu-quiz.db"
     
     # Security settings
     SECRET_KEY = "changethissecretkey"  # Change this in production!
     ALGORITHM = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+    # CORS settings
+    CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173"]
 
 settings = Settings()

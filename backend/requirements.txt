@@ -3,6 +3,9 @@ uvicorn
 sqlalchemy
 pydantic
 bcrypt
-python-jose
+python-jose[cryptography]
 python-multipart
+passlib[bcrypt]
 sqlalchemy
+pydantic-settings
+aiosqlite

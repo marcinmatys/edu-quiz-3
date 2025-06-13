@@ -4,47 +4,46 @@ Zanim zaczniemy, zapoznaj się z poniższymi informacjami:
 
 1. Route API specification:
 <route_api_specification>
-#### POST /quizzes
+#### POST /token
 
-- **Description**: Generates a new quiz using AI and saves it as a 'draft'.
-- **Authentication**: Required (Admin only).
-- **Request Body**:
+- **Description**: Authenticates a user and returns a JWT access token.
+- **Request Body**: `application/x-www-form-urlencoded`
+  - `username` (string, required)
+  - `password` (string, required)
+- **Success Response**: `200 OK`
   ```json
   {
-    "topic": "Historia Polski",
-    "question_count": 10,
-    "level_id": 5
+    "access_token": "your.jwt.token",
+    "token_type": "bearer"
   }
   ```
-- **Success Response**: `201 Created`
-  - The response body contains the newly generated quiz object, including all questions and answers, for immediate review.
+- **Error Response**: `401 Unauthorized`
   ```json
   {
-    "id": 2,
-    "title": "Historia Polski",
-    "status": "draft",
-    "level_id": 5,
-    "creator_id": 1,
-    "questions": [
-      {
-        "id": 3,
-        "text": "Kto był pierwszym królem Polski?",
-        "answers": [
-          {"id": 10, "text": "Mieszko I", "is_correct": false},
-          {"id": 11, "text": "Bolesław Chrobry", "is_correct": true},
-          // ... other answers
-        ]
-      }
-      // ... other questions
-    ]
+    "detail": "Incorrect username or password"
   }
   ```
-- **Error Response**: `422 Unprocessable Entity` (Validation error), `503 Service Unavailable` (AI service error).
 
 </route_api_specification>
 
-2. Related database resources:
-<related_db_resources>
+2. Authentication and Authorization
+<authentication_and_authorization>
+
+- **Mechanism**: Authentication will be handled using JSON Web Tokens (JWT).
+- **Flow**:
+  1. A user submits their credentials to `POST /token`.
+  2. The server validates the credentials and, if successful, issues a short-lived JWT `access_token`.
+  3. The client must include this token in the `Authorization` header for all subsequent protected requests (e.g., `Authorization: Bearer <token>`).
+- **Authorization**:
+  - API endpoints will be protected based on the user's role (`admin` or `student`), which is encoded in the JWT.
+  - **Admin routes**: Quiz creation, generation, updating, and deletion.
+  - **Student routes**: Listing published quizzes, taking quizzes, checking answers, and submitting results.
+  - Shared routes like `GET /levels` are accessible to any authenticated user.
+</authentication_and_authorization>
+
+
+3. Database resources:
+<db_resources>
 
 Tables
 
@@ -102,8 +101,21 @@ Stores the possible answers for each question.
 | `is_correct` | INTEGER | NOT NULL, CHECK (`is_correct` IN (0, 1)) | Indicates if the answer is correct (1) or not (0). |
 | `question_id` | INTEGER | NOT NULL, FOREIGN KEY (`questions.id`, ON DELETE CASCADE) | The question this answer belongs to. |
 
+### `results`
+Stores the results of quizzes taken by users.
 
-Relationships
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| `id` | INTEGER | PRIMARY KEY AUTOINCREMENT | Unique identifier for the result entry. |
+| `score` | INTEGER | NOT NULL | The number of correct answers. |
+| `max_score` | INTEGER | NOT NULL | The total number of questions in the quiz. |
+| `user_id` | INTEGER | NOT NULL, FOREIGN KEY (`users.id`, ON DELETE CASCADE) | The user who took the quiz. |
+| `quiz_id` | INTEGER | NOT NULL, FOREIGN KEY (`quizzes.id`, ON DELETE CASCADE) | The quiz that was taken. |
+| `created_at` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Timestamp of when the quiz was completed. |
+| `updated_at` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Timestamp of when the result was last updated. |
+| | | UNIQUE (`user_id`, `quiz_id`) | Ensures only the last score for a user's quiz is stored. |
+
+## 2. Relationships
 
 - **`users` to `quizzes`**: One-to-Many. One user (admin) can create many quizzes. (`quizzes.creator_id` -> `users.id`)
 - **`levels` to `quizzes`**: One-to-Many. One level can be assigned to many quizzes. (`quizzes.level_id` -> `levels.id`)
@@ -112,19 +124,19 @@ Relationships
 - **`users` to `results`**: One-to-Many. One user can have results for many different quizzes. (`results.user_id` -> `users.id`)
 - **`quizzes` to `results`**: One-to-Many. One quiz can be taken by many users. (`results.quiz_id` -> `quizzes.id`)
 
-</related_db_resources>
+</db_resources>
 
-3. Definicje typów:
+4. Definicje typów:
 <type_definitions>
 @schemas
 </type_definitions>
 
-3. Tech stack:
+5. Tech stack:
 <tech_stack>
 @tech-stack.md 
 </tech_stack>
 
-4. Implementation rules:
+6. Implementation rules:
 <implementation_rules>
 @shared.mdc, @backend.mdc
 </implementation_rules>
