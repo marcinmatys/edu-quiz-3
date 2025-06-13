@@ -20,17 +20,24 @@ and a student who browses, launches, and completes quizzes, receiving immediate 
 
 ## Project Structure
 
+- `/doc/` - Documentation files
+- `/data/` - SQLite database file and other data
 - `/frontend/` - React frontend
-- `/frontend/src` - source code
+- `/frontend/src` - Source code
+- `/frontend/src/assets` - Static assets like images and fonts
 - `/frontend/src/components` - Client-side components written in React
 - `/frontend/src/components/ui` - Client-side components from Shadcn/ui
+- `/frontend/src/lib` - Utility functions and hooks
 - `/backend/` - FastAPI backend
-- `/backend/app/main.py` - entry point
-- `/backend/app/routers/` - API endpoints
-- `/backend/app/models/` - SQLAlchemy models
-- `/backend/app/schemas/` - Pydantic schemas
-- `/backend/app/db/` - database setup
-- `/backend/app/core/` - settings, utils
+- `/backend/app/main.py` - Entry point
+- `/backend/app/core/` - Core logic (settings, security, middleware)
+- `/backend/app/db/` - Database setup and session management
+- `/backend/app/models/` - SQLAlchemy ORM models
+- `/backend/app/schemas/` - Pydantic validation schemas
+- `/backend/app/crud/` - CRUD database operations
+- `/backend/app/routers/` - API endpoints (routes)
+- `/backend/app/services/` - Business logic services
+- `/backend/app/tests/` - Backend tests
 - `/README.md` - Project-level documentation
 
 ## Coding practices

@@ -2,11 +2,13 @@ import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 from httpx import AsyncClient
 from fastapi import status
+from typing import List
 
 from ...main import app
 from ...services.quiz_service import QuizService
 from ...services.ai_quiz_generator import AIGenerationError
 from ...models.user import User
+from ...schemas.quiz import QuizReadList, LastResult
 
 # Constants for testing
 TEST_USER_ADMIN = {
@@ -51,6 +53,45 @@ TEST_GENERATED_QUIZ = {
     ]
 }
 
+TEST_QUIZ_LIST = [
+    {
+        "id": 1,
+        "title": "Published Quiz",
+        "status": "published",
+        "level_id": 1,
+        "creator_id": 1,
+        "updated_at": "2023-06-15T12:00:00",
+        "question_count": 10,
+        "last_result": None
+    },
+    {
+        "id": 2,
+        "title": "Draft Quiz",
+        "status": "draft",
+        "level_id": 2,
+        "creator_id": 1,
+        "updated_at": "2023-06-16T12:00:00",
+        "question_count": 5,
+        "last_result": None
+    }
+]
+
+TEST_QUIZ_LIST_STUDENT = [
+    {
+        "id": 1,
+        "title": "Published Quiz",
+        "status": "published",
+        "level_id": 1,
+        "creator_id": 1,
+        "updated_at": "2023-06-15T12:00:00",
+        "question_count": 10,
+        "last_result": {
+            "score": 8,
+            "max_score": 10
+        }
+    }
+]
+
 @pytest.fixture
 def mock_get_current_active_admin():
     """Mock the get_current_active_admin dependency"""
@@ -66,10 +107,163 @@ def mock_get_current_active_admin():
         yield mock_admin
 
 @pytest.fixture
+def mock_get_current_active_user():
+    """Mock the get_current_active_user dependency"""
+    with patch("app.routers.quizzes.get_current_active_user") as mock_user:
+        yield mock_user
+
+@pytest.fixture
 def mock_quiz_service():
     """Mock the QuizService"""
     with patch.object(QuizService, "create_ai_quiz") as mock_create:
         yield mock_create
+
+@pytest.fixture
+def mock_get_quizzes():
+    """Mock the get_quizzes method of QuizService"""
+    with patch.object(QuizService, "get_quizzes") as mock_get:
+        yield mock_get
+
+@pytest.mark.asyncio
+async def test_list_quizzes_admin_success(mock_get_current_active_user, mock_get_quizzes):
+    """Test successful quizzes listing as admin"""
+    # Arrange
+    admin_user = MagicMock(spec=User)
+    admin_user.id = TEST_USER_ADMIN["id"]
+    admin_user.username = TEST_USER_ADMIN["username"]
+    admin_user.role = TEST_USER_ADMIN["role"]
+    admin_user.is_active = TEST_USER_ADMIN["is_active"]
+    
+    mock_get_current_active_user.return_value = admin_user
+    
+    # Create QuizReadList objects
+    quiz_list = [QuizReadList.model_validate(quiz) for quiz in TEST_QUIZ_LIST]
+    mock_get_quizzes.return_value = quiz_list
+    
+    # Act
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.get("/api/v1/quizzes/")
+    
+    # Assert
+    assert response.status_code == status.HTTP_200_OK
+    assert len(response.json()) == 2
+    assert response.json()[0]["title"] == "Published Quiz"
+    assert response.json()[1]["title"] == "Draft Quiz"
+    
+    # Verify service call
+    mock_get_quizzes.assert_called_once()
+    args, kwargs = mock_get_quizzes.call_args
+    assert kwargs["sort_by"] == "level"  # Default value
+    assert kwargs["order"] == "asc"  # Default value
+    assert kwargs["status"] is None  # Default value
+
+@pytest.mark.asyncio
+async def test_list_quizzes_admin_with_filters(mock_get_current_active_user, mock_get_quizzes):
+    """Test quizzes listing with filters as admin"""
+    # Arrange
+    admin_user = MagicMock(spec=User)
+    admin_user.id = TEST_USER_ADMIN["id"]
+    admin_user.username = TEST_USER_ADMIN["username"]
+    admin_user.role = TEST_USER_ADMIN["role"]
+    admin_user.is_active = TEST_USER_ADMIN["is_active"]
+    
+    mock_get_current_active_user.return_value = admin_user
+    
+    # Create filtered QuizReadList objects (only draft)
+    quiz_list = [QuizReadList.model_validate(TEST_QUIZ_LIST[1])]
+    mock_get_quizzes.return_value = quiz_list
+    
+    # Act
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.get("/api/v1/quizzes/?sort_by=title&order=desc&status=draft")
+    
+    # Assert
+    assert response.status_code == status.HTTP_200_OK
+    assert len(response.json()) == 1
+    assert response.json()[0]["status"] == "draft"
+    
+    # Verify service call with correct parameters
+    mock_get_quizzes.assert_called_once()
+    args, kwargs = mock_get_quizzes.call_args
+    assert kwargs["sort_by"] == "title"
+    assert kwargs["order"] == "desc"
+    assert kwargs["status"] == "draft"
+
+@pytest.mark.asyncio
+async def test_list_quizzes_student_success(mock_get_current_active_user, mock_get_quizzes):
+    """Test successful quizzes listing as student"""
+    # Arrange
+    student_user = MagicMock(spec=User)
+    student_user.id = TEST_USER_STUDENT["id"]
+    student_user.username = TEST_USER_STUDENT["username"]
+    student_user.role = TEST_USER_STUDENT["role"]
+    student_user.is_active = TEST_USER_STUDENT["is_active"]
+    
+    mock_get_current_active_user.return_value = student_user
+    
+    # Create QuizReadList objects for student (only published with last_result)
+    quiz_list = [QuizReadList.model_validate(TEST_QUIZ_LIST_STUDENT[0])]
+    mock_get_quizzes.return_value = quiz_list
+    
+    # Act
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.get("/api/v1/quizzes/")
+    
+    # Assert
+    assert response.status_code == status.HTTP_200_OK
+    assert len(response.json()) == 1
+    assert response.json()[0]["status"] == "published"
+    assert response.json()[0]["last_result"] is not None
+    assert response.json()[0]["last_result"]["score"] == 8
+    assert response.json()[0]["last_result"]["max_score"] == 10
+
+@pytest.mark.asyncio
+async def test_list_quizzes_validation_error(mock_get_current_active_user, mock_get_quizzes):
+    """Test quizzes listing with validation error"""
+    # Arrange
+    admin_user = MagicMock(spec=User)
+    admin_user.id = TEST_USER_ADMIN["id"]
+    admin_user.role = TEST_USER_ADMIN["role"]
+    
+    mock_get_current_active_user.return_value = admin_user
+    mock_get_quizzes.side_effect = ValueError("Invalid sort_by parameter: invalid_field")
+    
+    # Act
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.get("/api/v1/quizzes/?sort_by=invalid_field")
+    
+    # Assert
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "Invalid sort_by parameter" in response.json()["detail"]
+
+@pytest.mark.asyncio
+async def test_list_quizzes_unexpected_error(mock_get_current_active_user, mock_get_quizzes):
+    """Test quizzes listing with unexpected error"""
+    # Arrange
+    admin_user = MagicMock(spec=User)
+    admin_user.id = TEST_USER_ADMIN["id"]
+    admin_user.role = TEST_USER_ADMIN["role"]
+    
+    mock_get_current_active_user.return_value = admin_user
+    mock_get_quizzes.side_effect = Exception("Unexpected error")
+    
+    # Act
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.get("/api/v1/quizzes/")
+    
+    # Assert
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert "An unexpected error occurred" in response.json()["detail"]
+
+@pytest.mark.asyncio
+async def test_list_quizzes_unauthorized():
+    """Test quizzes listing with unauthorized user (no token)"""
+    # Act
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.get("/api/v1/quizzes/")
+    
+    # Assert
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 @pytest.mark.asyncio
 async def test_create_quiz_success(mock_get_current_active_admin, mock_quiz_service):

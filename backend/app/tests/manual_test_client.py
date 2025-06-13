@@ -40,13 +40,34 @@ class APIClient:
                 print(f"Login failed: {e}")
                 return False
     
-    async def get_quizzes(self) -> Dict[str, Any]:
-        """Get list of quizzes"""
+    async def get_quizzes(
+        self, 
+        sort_by: Optional[str] = None,
+        order: Optional[str] = None,
+        status: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Get list of quizzes with optional sorting and filtering
+        
+        Args:
+            sort_by: Field to sort by (level, title, updated_at)
+            order: Sort order (asc, desc)
+            status: Filter by status (draft, published) - admin only
+        """
         url = f"{self.base_url}/api/v1/quizzes/"
+        
+        # Build query parameters
+        params = {}
+        if sort_by:
+            params["sort_by"] = sort_by
+        if order:
+            params["order"] = order
+        if status:
+            params["status"] = status
         
         async with httpx.AsyncClient() as client:
             try:
-                response = await client.get(url, headers=self.headers)
+                response = await client.get(url, params=params, headers=self.headers)
                 response.raise_for_status()
                 return response.json()
             except httpx.HTTPStatusError as e:
@@ -114,8 +135,9 @@ async def main():
     while True:
         print("\n--- Quiz API Testing Menu ---")
         print("1. Get all quizzes")
-        print("2. Create a new quiz")
-        print("3. Get quiz by ID")
+        print("2. Get quizzes with sorting and filtering")
+        print("3. Create a new quiz")
+        print("4. Get quiz by ID")
         print("0. Exit")
         
         choice = input("\nEnter your choice: ")
@@ -126,6 +148,16 @@ async def main():
             print(json.dumps(quizzes, indent=2))
         
         elif choice == "2":
+            print("\n--- Get Quizzes with Sorting and Filtering ---")
+            sort_by = input("Sort by (level, title, updated_at) [default=level]: ").strip() or None
+            order = input("Order (asc, desc) [default=asc]: ").strip() or None
+            status = input("Status (draft, published) [admin only, leave empty for all]: ").strip() or None
+            
+            quizzes = await client.get_quizzes(sort_by=sort_by, order=order, status=status)
+            print("\n--- Quiz List ---")
+            print(json.dumps(quizzes, indent=2))
+        
+        elif choice == "3":
             print("\n--- Create New Quiz ---")
             topic = input("Enter quiz topic: ")
             
@@ -156,7 +188,7 @@ async def main():
             print("\n--- Created Quiz ---")
             print(json.dumps(result, indent=2))
         
-        elif choice == "3":
+        elif choice == "4":
             try:
                 quiz_id = int(input("\nEnter quiz ID: "))
             except ValueError:

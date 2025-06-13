@@ -4,38 +4,45 @@ Zanim zaczniemy, zapoznaj się z poniższymi informacjami:
 
 1. Route API specification:
 <route_api_specification>
-#### GET /quizzes
+#### POST /token
 
-- **Description**: Retrieves a list of quizzes. Admins see all quizzes; students see only 'published' ones.
-- **Authentication**: Required.
-- **Query Parameters**:
-  - `sort_by` (string, optional, e.g., 'level'): Field to sort by. Defaults to `level`.
-  - `order` (string, optional, 'asc' or 'desc'): Sort order. Defaults to `asc`.
-  - `status` (string, optional, 'draft' or 'published'): Filters by status. (Admin only).
+- **Description**: Authenticates a user and returns a JWT access token.
+- **Request Body**: `application/x-www-form-urlencoded`
+  - `username` (string, required)
+  - `password` (string, required)
 - **Success Response**: `200 OK`
   ```json
-  [
-    {
-      "id": 1,
-      "title": "Historia Polski",
-      "status": "published",
-      "level_id": 5,
-      "creator_id": 1,
-      "question_count": 10,
-      "last_result": { // Present only for students who have a result
-        "score": 8,
-        "max_score": 10
-      },
-      "updated_at": "2023-10-27T12:00:00Z"
-    }
-  ]
+  {
+    "access_token": "your.jwt.token",
+    "token_type": "bearer"
+  }
   ```
 - **Error Response**: `401 Unauthorized`
+  ```json
+  {
+    "detail": "Incorrect username or password"
+  }
+  ```
 
 </route_api_specification>
 
+2. Authentication and Authorization
+<authentication_and_authorization>
 
-2. Database resources:
+- **Mechanism**: Authentication will be handled using JSON Web Tokens (JWT).
+- **Flow**:
+  1. A user submits their credentials to `POST /token`.
+  2. The server validates the credentials and, if successful, issues a short-lived JWT `access_token`.
+  3. The client must include this token in the `Authorization` header for all subsequent protected requests (e.g., `Authorization: Bearer <token>`).
+- **Authorization**:
+  - API endpoints will be protected based on the user's role (`admin` or `student`), which is encoded in the JWT.
+  - **Admin routes**: Quiz creation, generation, updating, and deletion.
+  - **Student routes**: Listing published quizzes, taking quizzes, checking answers, and submitting results.
+  - Shared routes like `GET /levels` are accessible to any authenticated user.
+</authentication_and_authorization>
+
+
+3. Database resources:
 <db_resources>
 
 Tables
@@ -119,17 +126,17 @@ Stores the results of quizzes taken by users.
 
 </db_resources>
 
-3. Definicje typów:
+4. Definicje typów:
 <type_definitions>
 @schemas
 </type_definitions>
 
-4. Tech stack:
+5. Tech stack:
 <tech_stack>
 @tech-stack.md 
 </tech_stack>
 
-5. Implementation rules:
+6. Implementation rules:
 <implementation_rules>
 @shared.mdc, @backend.mdc
 </implementation_rules>

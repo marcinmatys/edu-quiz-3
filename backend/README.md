@@ -55,13 +55,17 @@ On startup, the application automatically:
 
 ## Project Structure
 
-- `app/` - Main application package
-  - `models/` - SQLAlchemy models defining the database schema
-  - `schemas/` - Pydantic models for request/response validation
-  - `routers/` - API endpoints grouped by functionality
-  - `db/` - Database configuration and connection management
-  - `core/` - Core functionality like configuration and security
-  - `main.py` - Application entry point
+The backend follows a modular structure to separate concerns and improve maintainability:
+
+-   `/app/main.py`: The entry point of the FastAPI application.
+-   `/app/core/`: Core logic, including application settings (`config.py`), security configurations (`security.py`), and custom middleware (`middleware.py`).
+-   `/app/db/`: Database setup and session management (`session.py`).
+-   `/app/models/`: SQLAlchemy ORM models that define the database table structures.
+-   `/app/schemas/`: Pydantic schemas for data validation, serialization, and API request/response models.
+-   `/app/crud/`: Functions for Create, Read, Update, and Delete database operations, abstracting direct database interactions.
+-   `/app/routers/`: API endpoint definitions (routes) that handle incoming HTTP requests.
+-   `/app/services/`: Business logic services that coordinate operations between routers and CRUD functions.
+-   `/app/tests/`: Automated tests for the backend application.
 
 ## Development
 

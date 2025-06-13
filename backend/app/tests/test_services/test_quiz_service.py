@@ -5,9 +5,14 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from ...services.quiz_service import QuizService
 from ...services.ai_quiz_generator import AIGenerationError
-from ...schemas.quiz import QuizCreate
+from ...schemas.quiz import QuizCreate, QuizReadList
 from ...schemas.question import QuestionCreate
 from ...schemas.answer import AnswerCreate
+from ...models.user import User
+from ...models.quiz import Quiz
+from ...models.question import Question
+from ...models.result import Result
+from ...models.level import Level
 
 @pytest.fixture
 def mock_db():
@@ -77,6 +82,230 @@ def mock_crud():
             "mock_question": mock_question,
             "mock_quiz_with_relations": mock_quiz_with_relations
         }
+
+@pytest.fixture
+def mock_admin_user():
+    """Mock admin user"""
+    user = MagicMock(spec=User)
+    user.id = 1
+    user.username = "admin"
+    user.role = "admin"
+    user.is_active = True
+    return user
+
+@pytest.fixture
+def mock_student_user():
+    """Mock student user"""
+    user = MagicMock(spec=User)
+    user.id = 2
+    user.username = "student"
+    user.role = "student"
+    user.is_active = True
+    return user
+
+@pytest.fixture
+def mock_execute_result():
+    """Mock result from db.execute()"""
+    # Create mock quiz objects
+    quiz1 = MagicMock(spec=Quiz)
+    quiz1.id = 1
+    quiz1.title = "Published Quiz"
+    quiz1.status = "published"
+    quiz1.level_id = 1
+    quiz1.creator_id = 1
+    quiz1.updated_at = "2023-06-15T12:00:00"
+    
+    quiz2 = MagicMock(spec=Quiz)
+    quiz2.id = 2
+    quiz2.title = "Draft Quiz"
+    quiz2.status = "draft"
+    quiz2.level_id = 2
+    quiz2.creator_id = 1
+    quiz2.updated_at = "2023-06-16T12:00:00"
+    
+    # Create mock result object
+    result = MagicMock(spec=Result)
+    result.score = 8
+    result.max_score = 10
+    result.user_id = 2
+    result.quiz_id = 1
+    
+    # Create mock rows for different scenarios
+    published_row_with_result = (quiz1, 10, result)
+    published_row_no_result = (quiz1, 10, None)
+    draft_row = (quiz2, 5, None)
+    
+    # Create mock result object that can be iterated
+    mock_result = MagicMock()
+    
+    # Different configurations for different test cases
+    # Will be set in individual tests
+    mock_result.__iter__.return_value = []
+    
+    return {
+        "mock_result": mock_result,
+        "published_row_with_result": published_row_with_result,
+        "published_row_no_result": published_row_no_result,
+        "draft_row": draft_row
+    }
+
+@pytest.mark.asyncio
+async def test_get_quizzes_admin_all_quizzes(mock_db, mock_admin_user, mock_execute_result):
+    """Test getting all quizzes as admin"""
+    # Arrange
+    service = QuizService()
+    
+    # Setup mock db.execute to return both published and draft quizzes
+    mock_execute_result["mock_result"].__iter__.return_value = [
+        mock_execute_result["published_row_no_result"],
+        mock_execute_result["draft_row"]
+    ]
+    mock_db.execute.return_value = mock_execute_result["mock_result"]
+    
+    # Act
+    result = await service.get_quizzes(
+        db=mock_db,
+        user=mock_admin_user,
+        sort_by="title",
+        order="asc"
+    )
+    
+    # Assert
+    assert len(result) == 2
+    assert result[0].status == "published"
+    assert result[1].status == "draft"
+    assert result[0].question_count == 10
+    assert result[1].question_count == 5
+    assert result[0].last_result is None
+    assert result[1].last_result is None
+    
+    # Verify query was constructed correctly
+    mock_db.execute.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_get_quizzes_admin_filter_by_status(mock_db, mock_admin_user, mock_execute_result):
+    """Test getting quizzes filtered by status as admin"""
+    # Arrange
+    service = QuizService()
+    
+    # Setup mock db.execute to return only draft quizzes
+    mock_execute_result["mock_result"].__iter__.return_value = [
+        mock_execute_result["draft_row"]
+    ]
+    mock_db.execute.return_value = mock_execute_result["mock_result"]
+    
+    # Act
+    result = await service.get_quizzes(
+        db=mock_db,
+        user=mock_admin_user,
+        sort_by="title",
+        order="asc",
+        status="draft"
+    )
+    
+    # Assert
+    assert len(result) == 1
+    assert result[0].status == "draft"
+    assert result[0].question_count == 5
+    
+    # Verify query was constructed correctly
+    mock_db.execute.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_get_quizzes_student_only_published(mock_db, mock_student_user, mock_execute_result):
+    """Test that students can only see published quizzes"""
+    # Arrange
+    service = QuizService()
+    
+    # Setup mock db.execute to return only published quizzes
+    mock_execute_result["mock_result"].__iter__.return_value = [
+        mock_execute_result["published_row_with_result"]
+    ]
+    mock_db.execute.return_value = mock_execute_result["mock_result"]
+    
+    # Act
+    result = await service.get_quizzes(
+        db=mock_db,
+        user=mock_student_user,
+        sort_by="level",
+        order="desc"
+    )
+    
+    # Assert
+    assert len(result) == 1
+    assert result[0].status == "published"
+    assert result[0].question_count == 10
+    assert result[0].last_result is not None
+    assert result[0].last_result.score == 8
+    assert result[0].last_result.max_score == 10
+    
+    # Verify query was constructed correctly
+    mock_db.execute.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_get_quizzes_student_ignores_status_filter(mock_db, mock_student_user, mock_execute_result):
+    """Test that status filter is ignored for students"""
+    # Arrange
+    service = QuizService()
+    
+    # Setup mock db.execute to return only published quizzes
+    mock_execute_result["mock_result"].__iter__.return_value = [
+        mock_execute_result["published_row_no_result"]
+    ]
+    mock_db.execute.return_value = mock_execute_result["mock_result"]
+    
+    # Act
+    # Try to filter by draft status as student (should be ignored)
+    result = await service.get_quizzes(
+        db=mock_db,
+        user=mock_student_user,
+        sort_by="title",
+        order="asc",
+        status="draft"  # This should be ignored
+    )
+    
+    # Assert
+    assert len(result) == 1
+    assert result[0].status == "published"
+    
+    # Verify query was constructed correctly
+    mock_db.execute.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_get_quizzes_invalid_sort_by(mock_db, mock_admin_user):
+    """Test invalid sort_by parameter"""
+    # Arrange
+    service = QuizService()
+    
+    # Act / Assert
+    with pytest.raises(ValueError) as exc_info:
+        await service.get_quizzes(
+            db=mock_db,
+            user=mock_admin_user,
+            sort_by="invalid_field",  # Invalid sort_by
+            order="asc"
+        )
+    
+    assert "Invalid sort_by parameter" in str(exc_info.value)
+    assert not mock_db.execute.called
+
+@pytest.mark.asyncio
+async def test_get_quizzes_invalid_order(mock_db, mock_admin_user):
+    """Test invalid order parameter"""
+    # Arrange
+    service = QuizService()
+    
+    # Act / Assert
+    with pytest.raises(ValueError) as exc_info:
+        await service.get_quizzes(
+            db=mock_db,
+            user=mock_admin_user,
+            sort_by="title",
+            order="invalid_order"  # Invalid order
+        )
+    
+    assert "Invalid order parameter" in str(exc_info.value)
+    assert not mock_db.execute.called
 
 @pytest.mark.asyncio
 async def test_create_ai_quiz_success(mock_db, mock_ai_generator, mock_crud):

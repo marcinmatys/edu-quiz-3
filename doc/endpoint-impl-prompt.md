@@ -3,7 +3,7 @@ Twoim zadaniem jest wdrożenie endpointa interfejsu API REST w oparciu o podany 
 Najpierw dokładnie przejrzyj dostarczony plan wdrożenia:
 
 <implementation_plan>
-@endpoint-quizzes-plan.md
+@endpoint-quizzes-get-plan.md
 </implementation_plan>
 
 <types>

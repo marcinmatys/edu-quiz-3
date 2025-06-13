@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
+from typing import List, Optional, Literal
 import logging
 
 from ..db import get_db
@@ -20,6 +20,54 @@ router = APIRouter(prefix="/api/v1/quizzes", tags=["quizzes"])
 
 # Initialize services
 quiz_service = QuizService()
+
+@router.get(
+    "/",
+    response_model=List[QuizReadList],
+    status_code=status.HTTP_200_OK,
+    summary="Get list of quizzes",
+    description="Get list of quizzes. Admins can see all quizzes and filter by status, students can only see published quizzes."
+)
+async def list_quizzes(
+    sort_by: Literal["level", "title", "updated_at"] = Query("level", description="Field to sort by"),
+    order: Literal["asc", "desc"] = Query("asc", description="Sort order"),
+    status: Optional[Literal["draft", "published"]] = Query(None, description="Filter by status (admin only)"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Get list of quizzes
+    
+    - **sort_by**: Field to sort by (level, title, updated_at)
+    - **order**: Sort order (asc, desc)
+    - **status**: Filter by status (admin only)
+    
+    Admins can see all quizzes and filter by status.
+    Students can only see published quizzes.
+    """
+    try:
+        quizzes = await quiz_service.get_quizzes(
+            db=db,
+            user=current_user,
+            sort_by=sort_by,
+            order=order,
+            status=status
+        )
+        return quizzes
+    except ValueError as e:
+        # Handle validation errors
+        logger.warning(f"Validation error during quiz listing: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        # Handle unexpected errors
+        logger.exception(f"Unexpected error during quiz listing: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred"
+        )
 
 @router.post(
     "/", 
