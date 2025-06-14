@@ -3,7 +3,12 @@
  */
 import type { UserDTO } from "../types/auth";
 
-const API_BASE_URL = '/api/v1';
+// API configuration
+
+// Configuration for API endpoints
+// Set this to your real API base URL when needed (e.g., 'https://api.example.com')
+// Leave empty to use relative URLs (which will be intercepted by MSW when mocking is enabled)
+export const API_BASE_URL = '/api/v1';
 
 /**
  * Get the authentication token from localStorage
@@ -69,6 +74,30 @@ interface LoginResponse {
   token: string;
   user: UserDTO;
 }
+
+// Helper function for API calls
+export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
+  const url = API_BASE_URL ? `${API_BASE_URL}${endpoint}` : endpoint;
+  
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`API call failed: ${response.statusText}`);
+  }
+
+  // For non-JSON responses or empty responses
+  if (response.status === 204 || response.headers.get('content-length') === '0') {
+    return null;
+  }
+
+  return response.json();
+};
 
 /**
  * API client for making authenticated requests

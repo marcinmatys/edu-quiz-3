@@ -4,6 +4,7 @@ import { AuthProvider } from './lib/auth-context';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { LoginPage } from './pages/LoginPage';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
+import AdminQuizzesPage from './pages/admin/AdminQuizzesPage';
 import { StudentDashboard } from './pages/student/StudentDashboard';
 import './App.css';
 
@@ -22,6 +23,7 @@ function App() {
             {/* Admin routes */}
             <Route path="/admin" element={<ProtectedRoute requiredRole="admin" />}>
               <Route path="dashboard" element={<AdminDashboard />} />
+              <Route path="quizzes" element={<AdminQuizzesPage />} />
               {/* Add more admin routes here */}
             </Route>
             

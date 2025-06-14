@@ -4,29 +4,24 @@ Zanim zaczniemy, zapoznaj się z poniższymi informacjami:
 
 1. Route API specification:
 <route_api_specification>
-#### GET /quizzes
+#### GET /levels
 
-- **Description**: Retrieves a list of quizzes. Admins see all quizzes; students see only 'published' ones.
+- **Description**: Retrieves a list of all available difficulty levels.
 - **Authentication**: Required.
-- **Query Parameters**:
-  - `sort_by` (string, optional, e.g., 'level'): Field to sort by. Defaults to `level`.
-  - `order` (string, optional, 'asc' or 'desc'): Sort order. Defaults to `asc`.
-  - `status` (string, optional, 'draft' or 'published'): Filters by status. (Admin only).
 - **Success Response**: `200 OK`
   ```json
   [
     {
       "id": 1,
-      "title": "Historia Polski",
-      "status": "published",
-      "level_id": 5,
-      "creator_id": 1,
-      "question_count": 10,
-      "last_result": { // Present only for students who have a result
-        "score": 8,
-        "max_score": 10
-      },
-      "updated_at": "2023-10-27T12:00:00Z"
+      "code": "I",
+      "description": "Klasa I",
+      "level": 1
+    },
+    {
+      "id": 2,
+      "code": "II",
+      "description": "Klasa II",
+      "level": 2
     }
   ]
   ```
@@ -210,4 +205,4 @@ Końcowym wynikiem powinien być dobrze zorganizowany plan wdrożenia w formacie
 
 Końcowe wyniki powinny składać się wyłącznie z planu wdrożenia w formacie markdown i nie powinny powielać ani powtarzać żadnej pracy wykonanej w sekcji analizy.
 
-Pamiętaj, aby zapisać swój plan wdrożenia jako doc/endpoint-plan.md. Upewnij się, że plan jest szczegółowy, przejrzysty i zapewnia kompleksowe wskazówki dla zespołu programistów.
+Pamiętaj, aby zapisać swój plan wdrożenia jako doc/endpoint-levels-plan.md. Upewnij się, że plan jest szczegółowy, przejrzysty i zapewnia kompleksowe wskazówki dla zespołu programistów.

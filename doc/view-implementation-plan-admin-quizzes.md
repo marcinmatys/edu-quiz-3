@@ -16,7 +16,7 @@ Hierarchia komponentów zostanie zorganizowana w sposób modułowy, aby zapewni�
     │   ├── FilterDropdown (filtrowanie wg statusu)
     │   └── CreateQuizButton (otwiera CreateQuizDialog)
     ├── QuizList
-    │   └── QuizListItem (mapowany)
+    │   └── QuizListItem (mapowany, implementowany jako shadcn/ui Card)
     │       ├── QuizDetails (tytuł, poziom, status)
     │       └── ActionButtons (Edytuj, Usuń)
     └── QuizEditor (renderowany warunkowo lub na osobnej podstronie, np. /admin/quizzes/edit)
@@ -42,8 +42,8 @@ Komponent `CreateQuizDialog` będzie modalnym oknem dialogowym (`shadcn/ui Dialo
 - **Propsy**: Brak.
 
 ### `QuizList`
-- **Opis**: Komponent prezentacyjny wyświetlający listę quizów w formie tabeli (`shadcn/ui Table`).
-- **Główne elementy**: `Table`, `TableRow`, `TableCell`, `Button`.
+- **Opis**: Komponent prezentacyjny wyświetlający listę quizów w formie siatki kart. Każda karta (`QuizListItem`) reprezentuje pojedynczy quiz i zawiera jego kluczowe informacje oraz przyciski akcji.
+- **Główne elementy**: `div` (jako kontener siatki), `Card` (dla każdego `QuizListItem`), `Badge` (do oznaczenia statusu), `Button` (dla akcji), `Tooltip` (dla przycisków akcji).
 - **Obsługiwane interakcje**: Kliknięcie przycisków "Edytuj" i "Usuń".
 - **Typy**: `QuizListItemVM[]`.
 - **Propsy**:

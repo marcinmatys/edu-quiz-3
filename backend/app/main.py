@@ -5,7 +5,7 @@ from app.db import create_tables, SessionLocal
 from app.db.seed import seed_database
 from app.routers import debug
 from .core.middleware import RateLimitingMiddleware
-from .routers import quizzes, users, token
+from .routers import quizzes, users, token, levels
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -54,6 +54,7 @@ app.include_router(debug.router)
 app.include_router(quizzes.router)
 app.include_router(users.router, prefix="/api/v1/users")
 app.include_router(token.router)
+app.include_router(levels.router)
 
 # Import and include routers here for future scalability
 # from .routers import example_router
