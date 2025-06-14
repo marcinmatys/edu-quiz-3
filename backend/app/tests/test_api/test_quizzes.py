@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 from httpx import AsyncClient
-from fastapi import status
+from fastapi import status, HTTPException
 from typing import List
 
 from ...main import app
@@ -489,7 +489,6 @@ async def test_get_quiz_not_found(mock_get_current_active_user, mock_get_quiz_by
     mock_get_current_active_user.return_value = admin_user
     
     # Mock service to raise 404 exception
-    from fastapi import HTTPException
     mock_get_quiz_by_id.side_effect = HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
         detail="Quiz not found"
