@@ -30,10 +30,12 @@ interface QuizEditorProps {
   quiz: QuizEditorVM;
   onSave: (quizData: QuizEditorVM) => void;
   onPublish: (quizData: QuizEditorVM) => void;
+  onUnpublish: (quizData: QuizEditorVM) => void;
   onCancel: () => void;
 }
 
 const formSchema = z.object({
+  id: z.number().optional(),
   title: z.string().min(3, 'Tytuł musi mieć co najmniej 3 znaki'),
   level_id: z.coerce.number().int().positive('Wybierz poziom'),
   questions: z.array(
@@ -55,11 +57,12 @@ const formSchema = z.object({
       ),
     })
   ).min(1, 'Quiz musi mieć co najmniej jedno pytanie'),
+  status: z.enum(['draft', 'published']),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
-export const QuizEditor: React.FC<QuizEditorProps> = ({ quiz, onSave, onPublish, onCancel }) => {
+export const QuizEditor: React.FC<QuizEditorProps> = ({ quiz, onSave, onPublish, onUnpublish, onCancel }) => {
   const [levels, setLevels] = useState<LevelDto[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -67,9 +70,11 @@ export const QuizEditor: React.FC<QuizEditorProps> = ({ quiz, onSave, onPublish,
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      id: quiz.id,
       title: quiz.title,
       level_id: quiz.level_id,
       questions: quiz.questions,
+      status: quiz.status,
     },
   });
 
@@ -110,14 +115,31 @@ export const QuizEditor: React.FC<QuizEditorProps> = ({ quiz, onSave, onPublish,
 
   // Zapisywanie quizu
   const handleSave = (data: FormValues) => {
-    onSave(data as QuizEditorVM);
+    // Upewniamy się, że ID quizu jest zachowane
+    onSave({
+      ...data,
+      id: data.id ?? quiz.id
+    } as QuizEditorVM);
   };
 
   // Publikowanie quizu
   const handlePublish = () => {
     const data = form.getValues();
-    onPublish(data as QuizEditorVM);
+    // Upewniamy się, że ID quizu jest zachowane
+    onPublish({
+      ...data,
+      id: data.id ?? quiz.id
+    } as QuizEditorVM);
   };
+
+  // Wycofanie publikacji quizu
+  const handleUnpublish = () => {
+    const data = form.getValues();
+    onUnpublish({
+      ...data,
+      id: data.id ?? quiz.id
+    } as QuizEditorVM);
+  }
 
   // Renderowanie komponentu
   return (
@@ -133,10 +155,17 @@ export const QuizEditor: React.FC<QuizEditorProps> = ({ quiz, onSave, onPublish,
             <Save className="mr-2 h-4 w-4" />
             Zapisz
           </Button>
-          <Button variant="default" onClick={form.handleSubmit(handlePublish)}>
-            <Check className="mr-2 h-4 w-4" />
-            Publikuj
-          </Button>
+          {quiz.status === 'draft' ? (
+            <Button variant="default" onClick={form.handleSubmit(handlePublish)}>
+              <Check className="mr-2 h-4 w-4" />
+              Publikuj
+            </Button>
+          ) : (
+            <Button variant="destructive" onClick={handleUnpublish}>
+              <X className="mr-2 h-4 w-4" />
+              Wycofaj publikację
+            </Button>
+          )}
         </div>
       </div>
 

@@ -57,7 +57,6 @@ export const QuizList: React.FC<QuizListProps> = ({ quizzes, onEdit, onDelete })
               variant="outline" 
               size="sm" 
               onClick={() => onEdit(quiz.id)}
-              disabled={quiz.status === 'published'}
             >
               <EditIcon className="h-4 w-4 mr-1" />
               Edytuj

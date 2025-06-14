@@ -75,6 +75,11 @@ export const AdminQuizzesPage: React.FC = () => {
     await actions.publishQuiz(quizData);
   };
 
+  // Obsługa wycofania publikacji quizu
+  const handleUnpublishQuiz = async (quizData: any) => {
+    await actions.unpublishQuiz(quizData);
+  };
+
   // Obsługa anulowania edycji
   const handleCancelEdit = () => {
     actions.clearSelection();
@@ -105,6 +110,7 @@ export const AdminQuizzesPage: React.FC = () => {
           quiz={currentQuiz}
           onSave={handleSaveQuiz}
           onPublish={handlePublishQuiz}
+          onUnpublish={handleUnpublishQuiz}
           onCancel={handleCancelEdit}
         />
       ) : (

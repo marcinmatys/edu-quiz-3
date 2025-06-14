@@ -104,6 +104,7 @@ export const useAdminQuizzes = () => {
         id: data.id,
         title: data.title,
         level_id: data.level_id,
+        status: data.status,
         questions: data.questions.map((q) => ({
           id: q.id,
           uiId: uuidv4(),
@@ -143,6 +144,7 @@ export const useAdminQuizzes = () => {
         id: responseData.id,
         title: responseData.title,
         level_id: responseData.level_id,
+        status: responseData.status,
         questions: responseData.questions.map((q) => ({
           id: q.id,
           uiId: uuidv4(),
@@ -230,6 +232,33 @@ export const useAdminQuizzes = () => {
     }
   }, [fetchQuizzes]);
 
+  // Wycofanie publikacji quizu
+  const unpublishQuiz = useCallback(async (quizData: QuizEditorVM) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const updateData: QuizUpdateDto = {
+        ...mapQuizVMToUpdateDto(quizData),
+        status: 'draft'
+      };
+      
+      if (quizData.id) {
+        await api.put(`/quizzes/${quizData.id}`, updateData);
+      }
+      
+      await fetchQuizzes();
+      setCurrentQuiz(null);
+      
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Wystąpił nieznany błąd'));
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [fetchQuizzes]);
+
   // Usuwanie quizu
   const deleteQuiz = useCallback(async (quizId: number) => {
     try {
@@ -266,6 +295,7 @@ export const useAdminQuizzes = () => {
     createNewQuiz,
     saveQuiz,
     publishQuiz,
+    unpublishQuiz,
     deleteQuiz,
     clearSelection
   }), [
@@ -274,6 +304,7 @@ export const useAdminQuizzes = () => {
     createNewQuiz,
     saveQuiz,
     publishQuiz,
+    unpublishQuiz,
     deleteQuiz,
     clearSelection
   ]);

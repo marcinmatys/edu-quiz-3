@@ -66,6 +66,7 @@ export interface QuizEditorVM {
   id?: number;
   title: string;
   level_id: number;
+  status: 'draft' | 'published';
   questions: QuestionVM[];
 }
 

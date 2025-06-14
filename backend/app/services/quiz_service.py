@@ -347,6 +347,7 @@ class QuizService:
                     await self.create_question_with_answers(db, quiz_id, question_data)
             
             await db.flush()
+            await db.commit()
             
             # Reload the quiz with all updated relationships
             updated_quiz = await get_quiz(db, quiz_id)

@@ -112,6 +112,25 @@ class APIClient:
             except httpx.HTTPStatusError as e:
                 print(f"Error getting quiz {quiz_id}: {e}")
                 return {"error": str(e)}
+    
+    async def edit_quiz(self, quiz_id: int, quiz_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Edit an existing quiz by ID"""
+        url = f"{self.base_url}/api/v1/quizzes/{quiz_id}"
+        
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.put(
+                    url,
+                    json=quiz_data,
+                    headers=self.headers
+                )
+                response.raise_for_status()
+                return response.json()
+            except httpx.HTTPStatusError as e:
+                print(f"Error editing quiz {quiz_id}: {e}")
+                if e.response:
+                    print(f"Response: {e.response.text}")
+                return {"error": str(e)}
 
 
 async def main():
@@ -138,6 +157,7 @@ async def main():
         print("2. Get quizzes with sorting and filtering")
         print("3. Create a new quiz")
         print("4. Get quiz by ID")
+        print("5. Edit quiz by ID")
         print("0. Exit")
         
         choice = input("\nEnter your choice: ")
@@ -198,6 +218,171 @@ async def main():
             quiz = await client.get_quiz(quiz_id)
             print(f"\n--- Quiz {quiz_id} Details ---")
             print(json.dumps(quiz, indent=2))
+            
+        elif choice == "5":
+            print("\n--- Edit Quiz ---")
+            try:
+                quiz_id = int(input("Enter quiz ID to edit: "))
+            except ValueError:
+                print("Invalid quiz ID.")
+                continue
+                
+            # First get the current quiz data
+            current_quiz = await client.get_quiz(quiz_id)
+            if "error" in current_quiz:
+                print(f"Could not retrieve quiz {quiz_id}. Cannot edit.")
+                continue
+                
+            print("\nCurrent quiz details:")
+            print(json.dumps(current_quiz, indent=2))
+            
+            print("\n--- Edit Options ---")
+            print("1. Edit quiz properties (title, status)")
+            print("2. Edit a specific question")
+            print("3. Edit a specific answer")
+            
+            edit_choice = input("\nEnter your choice: ")
+            
+            # Initialize update data with required fields from current quiz
+            update_data = {
+                "level_id": current_quiz.get("level_id"),
+                "questions": current_quiz.get("questions", [])
+            }
+            
+            if edit_choice == "1":
+                # Get updated fields for quiz properties
+                print("\nEnter new values (leave empty to keep current values):")
+                title = input(f"Title [{current_quiz.get('title', '')}]: ").strip()
+                status = input(f"Status (draft/published) [{current_quiz.get('status', 'draft')}]: ").strip()
+                
+                # Update data with new values
+                if title:
+                    update_data["title"] = title
+                else:
+                    update_data["title"] = current_quiz.get("title", "")
+                    
+                if status:
+                    update_data["status"] = status
+                else:
+                    update_data["status"] = current_quiz.get("status", "draft")
+            
+            elif edit_choice == "2":
+                # Show available questions
+                print("\nAvailable questions:")
+                questions = current_quiz.get("questions", [])
+                for i, question in enumerate(questions):
+                    print(f"{i+1}. {question.get('text', '')}")
+                
+                try:
+                    question_idx = int(input("\nEnter question number to edit: ")) - 1
+                    if question_idx < 0 or question_idx >= len(questions):
+                        print("Invalid question number.")
+                        continue
+                except ValueError:
+                    print("Invalid number.")
+                    continue
+                
+                # Get the question to edit
+                question = questions[question_idx]
+                question_id = question.get("id")
+                
+                # Get updated fields for question
+                print("\nEnter new values (leave empty to keep current values):")
+                question_text = input(f"Question text [{question.get('text', '')}]: ").strip()
+                explanation = input(f"Explanation [{question.get('explanation', '')}]: ").strip()
+                
+                # Update the specific question in the questions list
+                for i, q in enumerate(update_data["questions"]):
+                    if q.get("id") == question_id:
+                        if question_text:
+                            update_data["questions"][i]["text"] = question_text
+                        if explanation:
+                            update_data["questions"][i]["explanation"] = explanation
+                        break
+                
+                # Include title and status from current quiz
+                update_data["title"] = current_quiz.get("title", "")
+                update_data["status"] = current_quiz.get("status", "draft")
+            
+            elif edit_choice == "3":
+                # Show available questions first
+                print("\nSelect a question first:")
+                questions = current_quiz.get("questions", [])
+                for i, question in enumerate(questions):
+                    print(f"{i+1}. {question.get('text', '')}")
+                
+                try:
+                    question_idx = int(input("\nEnter question number: ")) - 1
+                    if question_idx < 0 or question_idx >= len(questions):
+                        print("Invalid question number.")
+                        continue
+                except ValueError:
+                    print("Invalid number.")
+                    continue
+                
+                # Get the question and its answers
+                question = questions[question_idx]
+                question_id = question.get("id")
+                answers = question.get("answers", [])
+                
+                # Show available answers
+                print("\nAvailable answers:")
+                for i, answer in enumerate(answers):
+                    print(f"{i+1}. {answer.get('text', '')}")
+                
+                try:
+                    answer_idx = int(input("\nEnter answer number to edit: ")) - 1
+                    if answer_idx < 0 or answer_idx >= len(answers):
+                        print("Invalid answer number.")
+                        continue
+                except ValueError:
+                    print("Invalid number.")
+                    continue
+                
+                # Get the answer to edit
+                answer = answers[answer_idx]
+                answer_id = answer.get("id")
+                
+                # Get updated fields for answer
+                print("\nEnter new values (leave empty to keep current values):")
+                answer_text = input(f"Answer text [{answer.get('text', '')}]: ").strip()
+                is_correct_input = input(f"Is correct (true/false) [{answer.get('is_correct', False)}]: ").strip().lower()
+                
+                is_correct = None
+                if is_correct_input in ["true", "t", "yes", "y", "1"]:
+                    is_correct = True
+                elif is_correct_input in ["false", "f", "no", "n", "0"]:
+                    is_correct = False
+                
+                # Update the specific answer in the questions list
+                for i, q in enumerate(update_data["questions"]):
+                    if q.get("id") == question_id:
+                        for j, a in enumerate(q.get("answers", [])):
+                            if a.get("id") == answer_id:
+                                if answer_text:
+                                    update_data["questions"][i]["answers"][j]["text"] = answer_text
+                                if is_correct is not None:
+                                    update_data["questions"][i]["answers"][j]["is_correct"] = is_correct
+                                break
+                        break
+                
+                # Include title and status from current quiz
+                update_data["title"] = current_quiz.get("title", "")
+                update_data["status"] = current_quiz.get("status", "draft")
+            
+            else:
+                print("Invalid choice.")
+                continue
+                
+            if not update_data:
+                print("No changes provided. Quiz will not be updated.")
+                continue
+                
+            print("\nUpdating quiz...")
+            print(f"Sending update data: {json.dumps(update_data, indent=2)}")
+            result = await client.edit_quiz(quiz_id, update_data)
+            print("\n--- Updated Quiz ---")
+            print(json.dumps(result, indent=2))
         
         elif choice == "0":
             print("Exiting...")
