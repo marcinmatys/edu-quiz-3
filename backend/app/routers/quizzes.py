@@ -9,7 +9,7 @@ from ..services.quiz_service import QuizService
 from ..services.ai_quiz_generator import AIGenerationError
 from ..schemas.quiz import (
     QuizCreate, QuizGenerationResponse, QuizReadList, 
-    QuizReadDetail, QuizReadDetailStudent
+    QuizReadDetail, QuizReadDetailStudent, QuizUpdate
 )
 from ..models.user import User
 from ..crud.quiz import get_quizzes
@@ -159,6 +159,52 @@ async def create_quiz(
     except Exception as e:
         # Handle unexpected errors
         logger.exception(f"Unexpected error during quiz creation: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred"
+        )
+
+@router.put(
+    "/{quiz_id}",
+    response_model=QuizReadDetail,
+    status_code=status.HTTP_200_OK,
+    summary="Update a quiz",
+    description="Update a quiz with its questions and answers. Only admin users can update quizzes."
+)
+async def update_quiz(
+    quiz_id: int,
+    quiz_data: QuizUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_admin)
+):
+    """
+    Update a quiz with its questions and answers
+    
+    - **quiz_id**: ID of the quiz to update
+    - **quiz_data**: Updated quiz data including questions and answers
+    
+    Only admin users can use this endpoint.
+    """
+    try:
+        quiz = await quiz_service.update_quiz(
+            db=db,
+            quiz_id=quiz_id,
+            quiz_data=quiz_data
+        )
+        return QuizReadDetail.model_validate(quiz)
+    except ValueError as e:
+        # Handle validation errors
+        logger.warning(f"Validation error during quiz update: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e)
+        )
+    except HTTPException:
+        # Re-raise HTTP exceptions from service
+        raise
+    except Exception as e:
+        # Handle unexpected errors
+        logger.exception(f"Unexpected error during quiz update: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An unexpected error occurred"

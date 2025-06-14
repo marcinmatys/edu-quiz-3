@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Optional
-from .answer import AnswerCreate, AnswerRead, AnswerReadStudent, AnswerUpdate
+from typing import List, Optional, Union
+from .answer import AnswerCreate, AnswerRead, AnswerReadStudent, AnswerUpdate, AnswerCreateOrUpdate
 
 class QuestionBase(BaseModel):
     """Base schema for question data"""
@@ -14,6 +14,11 @@ class QuestionUpdate(QuestionBase):
     """Schema for question update"""
     id: int
     answers: List[AnswerUpdate]
+    
+class QuestionCreateOrUpdate(QuestionBase):
+    """Union schema for question creation or update in quiz update endpoint"""
+    id: Optional[int] = None
+    answers: List[AnswerCreateOrUpdate]
     
 class QuestionReadBase(QuestionBase):
     """Base schema for reading question data"""

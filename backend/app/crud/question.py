@@ -1,11 +1,12 @@
 from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy import delete
 from sqlalchemy.orm import selectinload
 
 from ..models.question import Question
 from ..models.answer import Answer
-from ..schemas.question import QuestionCreate, QuestionUpdate
+from ..schemas.question import QuestionCreate, QuestionUpdate, QuestionCreateOrUpdate
 
 async def create_question(
     db: AsyncSession,
@@ -131,4 +132,55 @@ async def update_question(
             answer.is_correct = answer_data.is_correct
     
     await db.flush()
-    return question 
+    return question
+
+async def delete_question(
+    db: AsyncSession,
+    question_id: int
+) -> bool:
+    """
+    Delete a question and all its answers
+    
+    Args:
+        db: Database session
+        question_id: ID of the question to delete
+        
+    Returns:
+        True if deleted, False if not found
+    """
+    # Delete all answers for the question first
+    delete_answers_query = delete(Answer).where(Answer.question_id == question_id)
+    await db.execute(delete_answers_query)
+    
+    # Delete the question
+    delete_question_query = delete(Question).where(Question.id == question_id)
+    result = await db.execute(delete_question_query)
+    
+    return result.rowcount > 0
+
+async def delete_questions_by_ids(
+    db: AsyncSession,
+    question_ids: List[int]
+) -> int:
+    """
+    Delete multiple questions and their answers by question IDs
+    
+    Args:
+        db: Database session
+        question_ids: List of question IDs to delete
+        
+    Returns:
+        Number of questions deleted
+    """
+    if not question_ids:
+        return 0
+    
+    # Delete all answers for these questions
+    delete_answers_query = delete(Answer).where(Answer.question_id.in_(question_ids))
+    await db.execute(delete_answers_query)
+    
+    # Delete the questions
+    delete_questions_query = delete(Question).where(Question.id.in_(question_ids))
+    result = await db.execute(delete_questions_query)
+    
+    return result.rowcount 

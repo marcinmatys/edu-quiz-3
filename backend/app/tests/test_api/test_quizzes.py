@@ -130,6 +130,12 @@ def mock_get_quiz_by_id():
     with patch.object(QuizService, "get_quiz_by_id") as mock_get:
         yield mock_get
 
+@pytest.fixture
+def mock_update_quiz():
+    """Mock the quiz_service.update_quiz method"""
+    with patch("app.routers.quizzes.quiz_service.update_quiz") as mock:
+        yield mock
+
 @pytest.mark.asyncio
 async def test_list_quizzes_admin_success(mock_get_current_active_user, mock_get_quizzes):
     """Test successful quizzes listing as admin"""
@@ -531,4 +537,180 @@ async def test_get_quiz_server_error(mock_get_current_active_user, mock_get_quiz
     
     # Assert
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
-    assert "An unexpected error occurred" in response.json()["detail"] 
+    assert "An unexpected error occurred" in response.json()["detail"]
+
+# Test data for quiz update
+TEST_QUIZ_UPDATE_DATA = {
+    "title": "Updated Quiz Title",
+    "level_id": 1,
+    "status": "published",
+    "questions": [
+        {
+            "id": 1,
+            "text": "Updated Question 1?",
+            "answers": [
+                {"id": 1, "text": "Updated Answer 1", "is_correct": True},
+                {"id": 2, "text": "Updated Answer 2", "is_correct": False},
+                {"text": "New Answer", "is_correct": False}
+            ]
+        },
+        {
+            "text": "New Question?",
+            "answers": [
+                {"text": "New Question Answer 1", "is_correct": True},
+                {"text": "New Question Answer 2", "is_correct": False}
+            ]
+        }
+    ]
+}
+
+# Updated quiz response
+TEST_UPDATED_QUIZ = {
+    "id": 1,
+    "title": "Updated Quiz Title",
+    "status": "published",
+    "level_id": 1,
+    "creator_id": 1,
+    "updated_at": "2023-06-15T12:00:00",
+    "questions": [
+        {
+            "id": 1,
+            "text": "Updated Question 1?",
+            "answers": [
+                {"id": 1, "text": "Updated Answer 1", "is_correct": True},
+                {"id": 2, "text": "Updated Answer 2", "is_correct": False},
+                {"id": 3, "text": "New Answer", "is_correct": False}
+            ]
+        },
+        {
+            "id": 2,
+            "text": "New Question?",
+            "answers": [
+                {"id": 4, "text": "New Question Answer 1", "is_correct": True},
+                {"id": 5, "text": "New Question Answer 2", "is_correct": False}
+            ]
+        }
+    ]
+}
+
+@pytest.mark.asyncio
+async def test_update_quiz_success(mock_get_current_active_admin, mock_update_quiz):
+    """Test successful quiz update"""
+    # Arrange
+    mock_update_quiz.return_value = MagicMock(**TEST_UPDATED_QUIZ)
+    
+    # Act
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.put("/api/v1/quizzes/1", json=TEST_QUIZ_UPDATE_DATA)
+    
+    # Assert
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["title"] == TEST_QUIZ_UPDATE_DATA["title"]
+    assert data["status"] == TEST_QUIZ_UPDATE_DATA["status"]
+    assert len(data["questions"]) == len(TEST_QUIZ_UPDATE_DATA["questions"])
+    
+    # Verify first question was updated
+    assert data["questions"][0]["text"] == TEST_QUIZ_UPDATE_DATA["questions"][0]["text"]
+    assert len(data["questions"][0]["answers"]) == 3  # Two existing answers + one new
+    
+    # Verify second question was added
+    assert data["questions"][1]["text"] == TEST_QUIZ_UPDATE_DATA["questions"][1]["text"]
+    assert len(data["questions"][1]["answers"]) == 2
+    
+    # Verify service call
+    mock_update_quiz.assert_called_once()
+    args, kwargs = mock_update_quiz.call_args
+    assert kwargs["quiz_id"] == 1
+    assert kwargs["quiz_data"].title == TEST_QUIZ_UPDATE_DATA["title"]
+    assert kwargs["quiz_data"].status == TEST_QUIZ_UPDATE_DATA["status"]
+    assert len(kwargs["quiz_data"].questions) == len(TEST_QUIZ_UPDATE_DATA["questions"])
+
+@pytest.mark.asyncio
+async def test_update_quiz_unauthorized(mock_update_quiz):
+    """Test quiz update without authentication"""
+    # Act
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.put("/api/v1/quizzes/1", json=TEST_QUIZ_UPDATE_DATA)
+    
+    # Assert
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    
+    # Verify service was not called
+    mock_update_quiz.assert_not_called()
+
+@pytest.mark.asyncio
+async def test_update_quiz_forbidden(mock_get_current_active_user, mock_update_quiz):
+    """Test quiz update as student (forbidden)"""
+    # Arrange
+    student_user = MagicMock(spec=User)
+    student_user.id = TEST_USER_STUDENT["id"]
+    student_user.username = TEST_USER_STUDENT["username"]
+    student_user.role = TEST_USER_STUDENT["role"]
+    student_user.is_active = TEST_USER_STUDENT["is_active"]
+    
+    mock_get_current_active_user.return_value = student_user
+    
+    # Act
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.put("/api/v1/quizzes/1", json=TEST_QUIZ_UPDATE_DATA)
+    
+    # Assert
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    
+    # Verify service was not called
+    mock_update_quiz.assert_not_called()
+
+@pytest.mark.asyncio
+async def test_update_quiz_not_found(mock_get_current_active_admin, mock_update_quiz):
+    """Test quiz update when quiz not found"""
+    # Arrange
+    mock_update_quiz.side_effect = HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="Quiz with ID 999 not found"
+    )
+    
+    # Act
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.put("/api/v1/quizzes/999", json=TEST_QUIZ_UPDATE_DATA)
+    
+    # Assert
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert "not found" in response.json()["detail"]
+    
+    # Verify service call
+    mock_update_quiz.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_update_quiz_validation_error(mock_get_current_active_admin, mock_update_quiz):
+    """Test quiz update with validation error"""
+    # Arrange
+    mock_update_quiz.side_effect = ValueError("Invalid quiz data")
+    
+    # Act
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.put("/api/v1/quizzes/1", json=TEST_QUIZ_UPDATE_DATA)
+    
+    # Assert
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert "Invalid quiz data" in response.json()["detail"]
+    
+    # Verify service call
+    mock_update_quiz.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_update_quiz_server_error(mock_get_current_active_admin, mock_update_quiz):
+    """Test quiz update with server error"""
+    # Arrange
+    mock_update_quiz.side_effect = Exception("Unexpected error")
+    
+    # Act
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.put("/api/v1/quizzes/1", json=TEST_QUIZ_UPDATE_DATA)
+    
+    # Assert
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert "unexpected error" in response.json()["detail"].lower()
+    
+    # Verify service call
+    mock_update_quiz.assert_called_once() 

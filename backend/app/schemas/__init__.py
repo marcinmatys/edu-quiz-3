@@ -5,11 +5,12 @@ from .user import UserBase, UserCreate, UserRead
 from .level import LevelBase, LevelCreate, LevelRead
 from .answer import (
     AnswerBase, AnswerCreate, AnswerUpdate, AnswerRead, 
-    AnswerReadStudent, AnswerCheck
+    AnswerReadStudent, AnswerCheck, AnswerCreateOrUpdate
 )
 from .question import (
     QuestionBase, QuestionCreate, QuestionUpdate, 
-    QuestionRead, QuestionReadStudent, AnswerCheckResponse
+    QuestionRead, QuestionReadStudent, AnswerCheckResponse,
+    QuestionCreateOrUpdate
 )
 from .quiz import (
     QuizBase, QuizCreate, QuizUpdate, QuizReadBase,
@@ -27,10 +28,11 @@ __all__ = [
     'LevelBase', 'LevelCreate', 'LevelRead',
     # Answer
     'AnswerBase', 'AnswerCreate', 'AnswerUpdate', 'AnswerRead', 
-    'AnswerReadStudent', 'AnswerCheck',
+    'AnswerReadStudent', 'AnswerCheck', 'AnswerCreateOrUpdate',
     # Question
     'QuestionBase', 'QuestionCreate', 'QuestionUpdate', 
     'QuestionRead', 'QuestionReadStudent', 'AnswerCheckResponse',
+    'QuestionCreateOrUpdate',
     # Quiz
     'QuizBase', 'QuizCreate', 'QuizUpdate', 'QuizReadBase',
     'QuizReadList', 'QuizReadDetail', 'QuizReadDetailStudent',

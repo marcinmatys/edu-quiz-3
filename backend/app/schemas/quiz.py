@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
 from datetime import datetime
-from .question import QuestionCreate, QuestionRead, QuestionReadStudent, QuestionUpdate
+from .question import QuestionCreate, QuestionRead, QuestionReadStudent, QuestionUpdate, QuestionCreateOrUpdate
 
 class QuizBase(BaseModel):
     """Base schema for quiz data"""
@@ -16,7 +16,7 @@ class QuizCreate(QuizBase):
 class QuizUpdate(QuizBase):
     """Schema for quiz update"""
     status: Optional[str] = Field(None, pattern="^(draft|published)$")
-    questions: List[QuestionUpdate]
+    questions: List[QuestionCreateOrUpdate]
 
 class QuizReadBase(QuizBase):
     """Base schema for reading quiz data"""

@@ -4,33 +4,37 @@ Zanim zaczniemy, zapoznaj się z poniższymi informacjami:
 
 1. Route API specification:
 <route_api_specification>
-#### GET /quizzes/{quiz_id}
+#### PUT /quizzes/{quiz_id}
 
-- **Description**: Retrieves a specific quiz with all its questions and answers. For students, the `is_correct` field is omitted.
-- **Authentication**: Required.
-- **Success Response**: `200 OK`
+- **Description**: Updates a quiz. Used by admins to edit questions/answers and to change the status from 'draft' to 'published'.
+- **Authentication**: Required (Admin only).
+- **Request Body**:
   ```json
   {
-    "id": 1,
-    "title": "Historia Polski",
-    "status": "published",
+    "title": "Nowy Tytuł Quizu",
+    "status": "published", // Optional: change status
+    "level_id": 4,
     "questions": [
-        {
-            "id": 1,
-            "text": "Kto był pierwszym królem Polski?",
-            "answers": [
-                {"id": 1, "text": "Mieszko I"},
-                {"id": 2, "text": "Bolesław Chrobry"},
-                {"id": 3, "text": "Kazimierz Wielki"},
-                {"id": 4, "text": "Władysław Łokietek"}
-            ]
-        }
-        // ... more questions
+      {
+        "id": 1, // Include ID for existing questions
+        "text": "Zaktualizowane pytanie?",
+        "answers": [
+          {"id": 1, "text": "Zmieniona odp A", "is_correct": false},
+          {"id": 2, "text": "Zmieniona odp B", "is_correct": true}
+          // ... other answers
+        ]
+      },
+      {
+        "text": "Nowe pytanie?", // No ID for new questions
+        "answers": [
+            // ... new answers
+        ]
+      }
     ]
   }
   ```
-  *Note: For admins, the `answers` array will include the `"is_correct": true/false` field.*
-- **Error Response**: `404 Not Found`
+- **Success Response**: `200 OK` (with the updated quiz object in the body).
+- **Error Response**: `404 Not Found`, `422 Unprocessable Entity`.
 
 </route_api_specification>
 
@@ -210,4 +214,4 @@ Końcowym wynikiem powinien być dobrze zorganizowany plan wdrożenia w formacie
 
 Końcowe wyniki powinny składać się wyłącznie z planu wdrożenia w formacie markdown i nie powinny powielać ani powtarzać żadnej pracy wykonanej w sekcji analizy.
 
-Pamiętaj, aby zapisać swój plan wdrożenia jako doc/endpoint-quizzes-load-plan.md. Upewnij się, że plan jest szczegółowy, przejrzysty i zapewnia kompleksowe wskazówki dla zespołu programistów.
+Pamiętaj, aby zapisać swój plan wdrożenia jako doc/endpoint-quizzes-load-put-plan.md. Upewnij się, że plan jest szczegółowy, przejrzysty i zapewnia kompleksowe wskazówki dla zespołu programistów.

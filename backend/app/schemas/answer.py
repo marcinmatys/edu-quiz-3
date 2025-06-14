@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional
+from typing import Optional, Union
 
 class AnswerBase(BaseModel):
     """Base schema for answer data"""
@@ -12,6 +12,12 @@ class AnswerCreate(AnswerBase):
 class AnswerUpdate(AnswerBase):
     """Schema for answer update"""
     id: int
+    is_correct: bool
+    
+class AnswerCreateOrUpdate(BaseModel):
+    """Union schema for answer creation or update in quiz update endpoint"""
+    id: Optional[int] = None
+    text: str = Field(..., min_length=1, max_length=128)
     is_correct: bool
     
 class AnswerRead(AnswerBase):
