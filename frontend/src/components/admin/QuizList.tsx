@@ -18,13 +18,13 @@ export const QuizList: React.FC<QuizListProps> = ({ quizzes, onEdit, onDelete })
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {quizzes.map((quiz) => (
         <Card key={quiz.id} className="overflow-hidden">
-          <CardHeader className="pb-3">
-            <div className="flex justify-between items-start">
-              <CardTitle className="text-xl">{quiz.title}</CardTitle>
+          <CardHeader className="pb-3 min-h-32">
+            <div className="flex justify-end">
               <Badge variant={quiz.status === 'published' ? 'default' : 'outline'}>
                 {quiz.status === 'published' ? 'Opublikowany' : 'Wersja robocza'}
               </Badge>
             </div>
+            <CardTitle className="text-xl">{quiz.title}</CardTitle>
           </CardHeader>
           
           <CardContent className="pb-2">
@@ -36,18 +36,6 @@ export const QuizList: React.FC<QuizListProps> = ({ quizzes, onEdit, onDelete })
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Liczba pytań:</span>
                 <span>{quiz.question_count}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Ostatnia aktualizacja:</span>
-                <div className="flex items-center">
-                  <CalendarIcon className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
-                  <span>
-                    {formatDistanceToNow(new Date(quiz.updated_at), {
-                      addSuffix: true,
-                      locale: pl
-                    })}
-                  </span>
-                </div>
               </div>
             </div>
           </CardContent>
