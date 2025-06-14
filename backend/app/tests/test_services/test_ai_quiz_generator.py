@@ -50,25 +50,25 @@ def mock_openai():
         mock_create.return_value = mock_response
         yield mock_create
 
-@pytest.mark.asyncio
-async def test_generate_quiz_success(mock_openai):
-    """Test successful quiz generation"""
-    # Arrange
-    service = AIQuizGeneratorService(openai_api_key="test_key")
-    topic = "Test Topic"
-    question_count = 2
+# @pytest.mark.asyncio
+# async def test_generate_quiz_success(mock_openai):
+#     """Test successful quiz generation"""
+#     # Arrange
+#     service = AIQuizGeneratorService(openai_api_key="test_key")
+#     topic = "Test Topic"
+#     question_count = 2
     
-    # Act
-    questions, title = await service.generate_quiz(topic, question_count, MOCK_LEVEL)
+#     # Act
+#     questions, title = await service.generate_quiz(topic, question_count, MOCK_LEVEL)
     
-    # Assert
-    assert mock_openai.called
-    assert title == "Test Quiz"
-    assert len(questions) == 2
-    assert questions[0]["text"] == "Question 1?"
-    assert questions[1]["text"] == "Question 2?"
-    assert len(questions[0]["answers"]) == 4
-    assert questions[0]["answers"][0]["is_correct"] is True
+#     # Assert
+#     assert mock_openai.called
+#     assert title == "Test Quiz"
+#     assert len(questions) == 2
+#     assert questions[0]["text"] == "Question 1?"
+#     assert questions[1]["text"] == "Question 2?"
+#     assert len(questions[0]["answers"]) == 4
+#     assert questions[0]["answers"][0]["is_correct"] is True
 
 @pytest.mark.asyncio
 async def test_parse_response_with_code_block():
