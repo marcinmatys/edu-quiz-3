@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
+from fastapi import HTTPException
 
 from ...services.quiz_service import QuizService
 from ...services.ai_quiz_generator import AIGenerationError
@@ -13,6 +14,7 @@ from ...models.quiz import Quiz
 from ...models.question import Question
 from ...models.result import Result
 from ...models.level import Level
+from ...models.answer import Answer
 
 @pytest.fixture
 def mock_db():
@@ -400,7 +402,7 @@ async def test_create_ai_quiz_ai_generation_error(mock_db, mock_ai_generator, mo
 
 @pytest.mark.asyncio
 async def test_create_ai_quiz_database_error(mock_db, mock_ai_generator, mock_crud):
-    """Test database error handling"""
+    """Test creating AI quiz with database error"""
     # Arrange
     service = QuizService()
     quiz_data = QuizCreate(
@@ -433,4 +435,75 @@ async def test_create_ai_quiz_database_error(mock_db, mock_ai_generator, mock_cr
     with pytest.raises(SQLAlchemyError) as exc_info:
         await service.create_ai_quiz(mock_db, quiz_data, creator_id)
     
-    assert "Database Error" in str(exc_info.value) 
+    assert "Database Error" in str(exc_info.value)
+
+@pytest.mark.asyncio
+async def test_get_quiz_by_id_success(mock_db):
+    """Test getting a quiz by ID successfully"""
+    # Arrange
+    service = QuizService()
+    
+    # Create mock quiz with questions and answers
+    mock_answer1 = MagicMock(spec=Answer)
+    mock_answer1.id = 1
+    mock_answer1.text = "Answer 1"
+    mock_answer1.is_correct = 1
+    
+    mock_answer2 = MagicMock(spec=Answer)
+    mock_answer2.id = 2
+    mock_answer2.text = "Answer 2"
+    mock_answer2.is_correct = 0
+    
+    mock_question = MagicMock(spec=Question)
+    mock_question.id = 1
+    mock_question.text = "Test Question"
+    mock_question.answers = [mock_answer1, mock_answer2]
+    
+    mock_quiz = MagicMock(spec=Quiz)
+    mock_quiz.id = 1
+    mock_quiz.title = "Test Quiz"
+    mock_quiz.status = "published"
+    mock_quiz.level_id = 1
+    mock_quiz.creator_id = 1
+    mock_quiz.questions = [mock_question]
+    
+    # Setup mock result
+    mock_result = AsyncMock()
+    mock_result.scalar_one_or_none.return_value = mock_quiz
+    mock_db.execute.return_value = mock_result
+    
+    # Act
+    result = await service.get_quiz_by_id(db=mock_db, quiz_id=1)
+    
+    # Assert
+    assert result is not None
+    assert result.id == 1
+    assert result.title == "Test Quiz"
+    assert len(result.questions) == 1
+    assert result.questions[0].id == 1
+    assert len(result.questions[0].answers) == 2
+    
+    # Verify query was constructed correctly
+    mock_db.execute.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_get_quiz_by_id_not_found(mock_db):
+    """Test getting a quiz by ID that doesn't exist"""
+    # Arrange
+    service = QuizService()
+    
+    # Setup mock result
+    mock_result = AsyncMock()
+    mock_result.scalar_one_or_none.return_value = None
+    mock_db.execute.return_value = mock_result
+    
+    # Act & Assert
+    with pytest.raises(HTTPException) as excinfo:
+        await service.get_quiz_by_id(db=mock_db, quiz_id=999)
+    
+    # Verify exception details
+    assert excinfo.value.status_code == 404
+    assert "Quiz not found" in excinfo.value.detail
+    
+    # Verify query was constructed correctly
+    mock_db.execute.assert_called_once() 

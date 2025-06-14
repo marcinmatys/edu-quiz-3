@@ -4,28 +4,33 @@ Zanim zaczniemy, zapoznaj się z poniższymi informacjami:
 
 1. Route API specification:
 <route_api_specification>
-#### GET /levels
+#### GET /quizzes/{quiz_id}
 
-- **Description**: Retrieves a list of all available difficulty levels.
+- **Description**: Retrieves a specific quiz with all its questions and answers. For students, the `is_correct` field is omitted.
 - **Authentication**: Required.
 - **Success Response**: `200 OK`
   ```json
-  [
-    {
-      "id": 1,
-      "code": "I",
-      "description": "Klasa I",
-      "level": 1
-    },
-    {
-      "id": 2,
-      "code": "II",
-      "description": "Klasa II",
-      "level": 2
-    }
-  ]
+  {
+    "id": 1,
+    "title": "Historia Polski",
+    "status": "published",
+    "questions": [
+        {
+            "id": 1,
+            "text": "Kto był pierwszym królem Polski?",
+            "answers": [
+                {"id": 1, "text": "Mieszko I"},
+                {"id": 2, "text": "Bolesław Chrobry"},
+                {"id": 3, "text": "Kazimierz Wielki"},
+                {"id": 4, "text": "Władysław Łokietek"}
+            ]
+        }
+        // ... more questions
+    ]
+  }
   ```
-- **Error Response**: `401 Unauthorized`
+  *Note: For admins, the `answers` array will include the `"is_correct": true/false` field.*
+- **Error Response**: `404 Not Found`
 
 </route_api_specification>
 
@@ -205,4 +210,4 @@ Końcowym wynikiem powinien być dobrze zorganizowany plan wdrożenia w formacie
 
 Końcowe wyniki powinny składać się wyłącznie z planu wdrożenia w formacie markdown i nie powinny powielać ani powtarzać żadnej pracy wykonanej w sekcji analizy.
 
-Pamiętaj, aby zapisać swój plan wdrożenia jako doc/endpoint-levels-plan.md. Upewnij się, że plan jest szczegółowy, przejrzysty i zapewnia kompleksowe wskazówki dla zespołu programistów.
+Pamiętaj, aby zapisać swój plan wdrożenia jako doc/endpoint-quizzes-load-plan.md. Upewnij się, że plan jest szczegółowy, przejrzysty i zapewnia kompleksowe wskazówki dla zespołu programistów.

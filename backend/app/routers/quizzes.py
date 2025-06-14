@@ -22,6 +22,49 @@ router = APIRouter(prefix="/api/v1/quizzes", tags=["quizzes"])
 quiz_service = QuizService()
 
 @router.get(
+    "/{quiz_id}",
+    status_code=status.HTTP_200_OK,
+    summary="Get quiz details by ID",
+    description="Get detailed information about a specific quiz. Admins receive complete data including answer correctness, while students receive the same data without answer correctness information."
+)
+async def get_quiz(
+    quiz_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Get a specific quiz by ID
+    
+    - **quiz_id**: ID of the quiz to retrieve
+    
+    Returns different response schemas based on user role:
+    - Admins receive complete data including answer correctness (QuizReadDetail)
+    - Students receive the same data without answer correctness (QuizReadDetailStudent)
+    """
+    try:
+        # Get quiz with related questions and answers
+        quiz = await quiz_service.get_quiz_by_id(db=db, quiz_id=quiz_id)
+        
+        # Return different response based on user role
+        if current_user.role == "admin":
+            # Admin view - includes answer correctness
+            return QuizReadDetail.model_validate(quiz)
+        else:
+            # Student view - excludes answer correctness
+            return QuizReadDetailStudent.model_validate(quiz)
+            
+    except HTTPException as e:
+        # Re-raise HTTP exceptions from service
+        raise e
+    except Exception as e:
+        # Handle unexpected errors
+        logger.exception(f"Unexpected error retrieving quiz {quiz_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred"
+        )
+
+@router.get(
     "/",
     response_model=List[QuizReadList],
     status_code=status.HTTP_200_OK,

@@ -124,6 +124,12 @@ def mock_get_quizzes():
     with patch.object(QuizService, "get_quizzes") as mock_get:
         yield mock_get
 
+@pytest.fixture
+def mock_get_quiz_by_id():
+    """Mock the get_quiz_by_id method of QuizService"""
+    with patch.object(QuizService, "get_quiz_by_id") as mock_get:
+        yield mock_get
+
 @pytest.mark.asyncio
 async def test_list_quizzes_admin_success(mock_get_current_active_user, mock_get_quizzes):
     """Test successful quizzes listing as admin"""
@@ -357,4 +363,172 @@ async def test_create_quiz_invalid_input():
             response = await client.post("/api/v1/quizzes/", json=invalid_data)
     
     # Assert
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY 
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+# Test data for quiz detail endpoint
+TEST_QUIZ_DETAIL = {
+    "id": 1,
+    "title": "Test Quiz",
+    "status": "published",
+    "level_id": 1,
+    "creator_id": 1,
+    "updated_at": "2023-06-15T12:00:00",
+    "questions": [
+        {
+            "id": 1,
+            "text": "Question 1?",
+            "answers": [
+                {"id": 1, "text": "Answer 1", "is_correct": True},
+                {"id": 2, "text": "Answer 2", "is_correct": False},
+                {"id": 3, "text": "Answer 3", "is_correct": False},
+                {"id": 4, "text": "Answer 4", "is_correct": False}
+            ]
+        },
+        {
+            "id": 2,
+            "text": "Question 2?",
+            "answers": [
+                {"id": 5, "text": "Answer 5", "is_correct": False},
+                {"id": 6, "text": "Answer 6", "is_correct": True},
+                {"id": 7, "text": "Answer 7", "is_correct": False},
+                {"id": 8, "text": "Answer 8", "is_correct": False}
+            ]
+        }
+    ]
+}
+
+@pytest.mark.asyncio
+async def test_get_quiz_admin_success(mock_get_current_active_user, mock_get_quiz_by_id):
+    """Test getting quiz details as admin"""
+    # Arrange
+    admin_user = MagicMock(spec=User)
+    admin_user.id = TEST_USER_ADMIN["id"]
+    admin_user.username = TEST_USER_ADMIN["username"]
+    admin_user.role = TEST_USER_ADMIN["role"]
+    admin_user.is_active = TEST_USER_ADMIN["is_active"]
+    
+    mock_get_current_active_user.return_value = admin_user
+    
+    # Create mock quiz object
+    mock_quiz = MagicMock()
+    for key, value in TEST_QUIZ_DETAIL.items():
+        setattr(mock_quiz, key, value)
+    
+    mock_get_quiz_by_id.return_value = mock_quiz
+    
+    # Act
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.get("/api/v1/quizzes/1")
+    
+    # Assert
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["id"] == 1
+    assert data["title"] == "Test Quiz"
+    assert len(data["questions"]) == 2
+    
+    # Verify admin gets is_correct field
+    assert "is_correct" in data["questions"][0]["answers"][0]
+    assert data["questions"][0]["answers"][0]["is_correct"] is True
+    
+    # Verify service call
+    mock_get_quiz_by_id.assert_called_once_with(db=mock_get_quiz_by_id.call_args[1]["db"], quiz_id=1)
+
+@pytest.mark.asyncio
+async def test_get_quiz_student_success(mock_get_current_active_user, mock_get_quiz_by_id):
+    """Test getting quiz details as student (without is_correct field)"""
+    # Arrange
+    student_user = MagicMock(spec=User)
+    student_user.id = TEST_USER_STUDENT["id"]
+    student_user.username = TEST_USER_STUDENT["username"]
+    student_user.role = TEST_USER_STUDENT["role"]
+    student_user.is_active = TEST_USER_STUDENT["is_active"]
+    
+    mock_get_current_active_user.return_value = student_user
+    
+    # Create mock quiz object
+    mock_quiz = MagicMock()
+    for key, value in TEST_QUIZ_DETAIL.items():
+        setattr(mock_quiz, key, value)
+    
+    mock_get_quiz_by_id.return_value = mock_quiz
+    
+    # Act
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.get("/api/v1/quizzes/1")
+    
+    # Assert
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["id"] == 1
+    assert data["title"] == "Test Quiz"
+    assert len(data["questions"]) == 2
+    
+    # Verify student does NOT get is_correct field
+    assert "is_correct" not in data["questions"][0]["answers"][0]
+    
+    # Verify service call
+    mock_get_quiz_by_id.assert_called_once_with(db=mock_get_quiz_by_id.call_args[1]["db"], quiz_id=1)
+
+@pytest.mark.asyncio
+async def test_get_quiz_not_found(mock_get_current_active_user, mock_get_quiz_by_id):
+    """Test getting quiz that doesn't exist"""
+    # Arrange
+    admin_user = MagicMock(spec=User)
+    admin_user.id = TEST_USER_ADMIN["id"]
+    admin_user.username = TEST_USER_ADMIN["username"]
+    admin_user.role = TEST_USER_ADMIN["role"]
+    admin_user.is_active = TEST_USER_ADMIN["is_active"]
+    
+    mock_get_current_active_user.return_value = admin_user
+    
+    # Mock service to raise 404 exception
+    from fastapi import HTTPException
+    mock_get_quiz_by_id.side_effect = HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="Quiz not found"
+    )
+    
+    # Act
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.get("/api/v1/quizzes/999")
+    
+    # Assert
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert "Quiz not found" in response.json()["detail"]
+    
+    # Verify service call
+    mock_get_quiz_by_id.assert_called_once_with(db=mock_get_quiz_by_id.call_args[1]["db"], quiz_id=999)
+
+@pytest.mark.asyncio
+async def test_get_quiz_unauthorized():
+    """Test getting quiz without authentication"""
+    # Act
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.get("/api/v1/quizzes/1")
+    
+    # Assert
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+@pytest.mark.asyncio
+async def test_get_quiz_server_error(mock_get_current_active_user, mock_get_quiz_by_id):
+    """Test server error when getting quiz"""
+    # Arrange
+    admin_user = MagicMock(spec=User)
+    admin_user.id = TEST_USER_ADMIN["id"]
+    admin_user.username = TEST_USER_ADMIN["username"]
+    admin_user.role = TEST_USER_ADMIN["role"]
+    admin_user.is_active = TEST_USER_ADMIN["is_active"]
+    
+    mock_get_current_active_user.return_value = admin_user
+    
+    # Mock service to raise unexpected exception
+    mock_get_quiz_by_id.side_effect = Exception("Database error")
+    
+    # Act
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.get("/api/v1/quizzes/1")
+    
+    # Assert
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert "An unexpected error occurred" in response.json()["detail"] 

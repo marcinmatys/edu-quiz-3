@@ -3,7 +3,7 @@ from typing import Dict, List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import select, func, desc, asc
-from sqlalchemy.orm import joinedload, aliased
+from sqlalchemy.orm import joinedload, aliased, selectinload
 
 from ..crud.quiz import create_quiz, get_quiz, get_quizzes
 from ..crud.question import create_question
@@ -18,6 +18,7 @@ from ..schemas.quiz import QuizCreate, QuizGenerationResponse, QuizReadList
 from ..schemas.question import QuestionCreate
 from ..schemas.answer import AnswerCreate
 from ..services.ai_quiz_generator import AIQuizGeneratorService, AIGenerationError
+from fastapi import HTTPException, status
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,39 @@ class QuizService:
     def __init__(self):
         """Initialize the quiz service"""
         self.ai_generator = AIQuizGeneratorService()
+    
+    async def get_quiz_by_id(self, db: AsyncSession, quiz_id: int) -> Quiz:
+        """
+        Get a quiz by ID with all related questions and answers
+        
+        Args:
+            db: Database session
+            quiz_id: ID of the quiz to retrieve
+            
+        Returns:
+            Quiz object with loaded relationships
+            
+        Raises:
+            HTTPException: If quiz not found (404)
+        """
+        # Build query with selectinload to efficiently load related data
+        query = select(Quiz).where(Quiz.id == quiz_id).options(
+            selectinload(Quiz.questions).selectinload(Question.answers)
+        )
+        
+        # Execute query
+        result = await db.execute(query)
+        quiz = result.scalar_one_or_none()
+        
+        # Raise 404 if quiz not found
+        if not quiz:
+            logger.warning(f"Quiz with ID {quiz_id} not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Quiz not found"
+            )
+            
+        return quiz
     
     async def get_quizzes(
         self,
