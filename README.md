@@ -195,7 +195,7 @@ Below are screenshots of the key interfaces in the application:
 -   Different types of questions (e.g., open-ended, multi-select).
 
 ## Project Status
-This project is currently **in development**. Core features are being implemented.
+This project is currently in the **MVP phase**. Core minimum features are being built and tested.
 
 ## License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE.md) file for details.
