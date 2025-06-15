@@ -39,10 +39,10 @@ Interfejs będzie zbudowany z reużywalnych komponentów z biblioteki `shadcn/ui
 -   **UX, dostępność i względy bezpieczeństwa:** Widok chroniony. Jasne wskazanie, która odpowiedź jest obecnie oznaczona jako poprawna.
 
 ### 5. Widok Panelu Ucznia
--   **Ścieżka:** `/student/dashboard`
+-   **Ścieżka:** `/student/quizzes`
 -   **Główny cel:** Wyświetlenie listy dostępnych (opublikowanych) quizów do rozwiązania.
 -   **Kluczowe informacje do wyświetlenia:** Siatka kart z quizami. Każda karta zawiera tytuł, poziom zaawansowania, liczbę pytań oraz ostatni wynik (jeśli istnieje).
--   **Kluczowe komponenty:** `Card`, `Button` "Rozpocznij".
+-   **Kluczowe komponenty:** `Card`, `Button` (do rozpoczęcia rozwiązywania quizu), `Tooltip` (dla przycisków akcji), `Badge` (dla ostatniego wyniku), `Select` (do sortowania quizów).
 -   **UX, dostępność i względy bezpieczeństwa:** Widok chroniony, dostępny tylko dla ucznia. Wyświetlane są tylko opublikowane quizy. Ostatni wynik motywuje do poprawy.
 
 ### 6. Widok Rozwiązywania Quizu

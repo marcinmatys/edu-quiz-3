@@ -1,4 +1,9 @@
 // Typy DTO - zgodne z API
+export interface LastResultDto {
+  score: number;
+  max_score: number;
+}
+
 export interface QuizListItemDto {
   id: number;
   title: string;
@@ -7,6 +12,7 @@ export interface QuizListItemDto {
   question_count: number;
   updated_at: string;
   creator_id: number;
+  last_result?: LastResultDto | null;
 }
 
 export interface AnswerDto {
@@ -73,4 +79,20 @@ export interface QuizEditorVM {
 // Typ dla filtrów listy quizów
 export interface QuizFilters {
   status?: 'published' | 'draft' | 'all';
+}
+
+// Model widoku dla komponentu QuizCard w panelu ucznia
+export interface QuizCardViewModel {
+  id: number;
+  title: string;
+  levelDescription: string;     // np. "Klasa IV"
+  questionCountText: string;    // np. "Liczba pytań: 10"
+  lastResultText: string | null;  // np. "Ostatni wynik: 8/10"
+  startQuizPath: string;        // np. "/student/quiz/5"
+}
+
+// Typ dla parametrów sortowania listy quizów ucznia
+export interface SortParams {
+  sortBy: string;
+  order: 'asc' | 'desc';
 } 
