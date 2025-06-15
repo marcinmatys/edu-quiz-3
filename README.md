@@ -11,9 +11,11 @@ An educational application for creating and conducting interactive, AI-powered q
 3. [Project Structure](#project-structure)
 4. [Getting Started Locally](#getting-started-locally)
 5. [Available Scripts](#available-scripts)
-6. [Project Scope](#project-scope)
-7. [Project Status](#project-status)
-8. [License](#license)
+6. [Development Notes](#development-notes)
+7. [User Interface](#user-interface)
+8. [Project Scope](#project-scope)
+9. [Project Status](#project-status)
+10. [License](#license)
 
 ## Project Description
 
@@ -136,6 +138,43 @@ In the `frontend` directory, you can run the following scripts:
 ## Development Notes
 - Frontend and backend run on separate development servers.
 - CORS is enabled on the backend for local development to allow requests from the frontend.
+
+## User Interface
+
+Below are screenshots of the key interfaces in the application:
+
+### Authentication
+
+![Login Screen](doc/ui/login.png)  
+*Login screen where users can authenticate as either an administrator or a student.*
+
+### Administrator Interface
+
+![Admin Dashboard](doc/ui/admin-dashboard.png)
+*Administrator dashboard giving access to various features, including quiz management.*
+
+![Admin Quizzes](doc/ui/admin-quizzes.png)
+*Administrator quiz management screen displaying all quizzes, with options to create, edit, delete, and status for each quiz.*
+
+![Create New Quiz](doc/ui/new-quizz.png)  
+*Interface for creating a new quiz with AI assistance, allowing specification of topic, difficulty level, and number of questions.*
+
+![Edit Quiz](doc/ui/edit-quizz.png)
+*Quiz editing interface where administrators can modify title, questions, answers, and publish/unpublish the quiz.*
+
+### Student Interface
+
+![Student Dashboard](doc/ui/student-dashboard.png)
+*Student dashboard providing access to various features, including browsing and taking quizzes.*
+
+![Student Quizzes](doc/ui/student-quizzes.png)
+*List of available quizzes for students, displaying quiz title, difficulty level, and previous scores if applicable.*
+
+![Quiz Question](doc/ui/student-question.png)
+*Quiz interface that allows students to answer questions, displays progress, and shows an AI-generated explanation after submitting an answer.*
+
+![Quiz Summary](doc/ui/quizz-summary.png)
+*Summary screen displayed after completing a quiz, showing the final score.*
 
 ## Project Scope
 
