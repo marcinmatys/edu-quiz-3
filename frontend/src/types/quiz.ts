@@ -95,4 +95,59 @@ export interface QuizCardViewModel {
 export interface SortParams {
   sortBy: string;
   order: 'asc' | 'desc';
+}
+
+// --- DTOs for Quiz Taking ---
+
+// Odpowiedź serwera dla GET /quizzes/{quiz_id} (dla studenta)
+export interface AnswerReadStudentDto {
+  id: number;
+  text: string;
+}
+
+export interface QuestionReadStudentDto {
+  id: number;
+  text: string;
+  answers: AnswerReadStudentDto[];
+}
+
+export interface QuizReadDetailStudentDto {
+  id: number;
+  title: string;
+  level_id: number;
+  status: string;
+  creator_id: number;
+  updated_at: string;
+  questions: QuestionReadStudentDto[];
+}
+
+// Ciało żądania dla POST /quizzes/{quiz_id}/check-answer
+export interface AnswerCheckRequestDto {
+  question_id: number;
+  answer_id: number;
+}
+
+// Odpowiedź serwera dla POST /quizzes/{quiz_id}/check-answer
+export interface AnswerCheckResponseDto {
+  is_correct: boolean;
+  correct_answer_id: number;
+  explanation: string;
+}
+
+// Ciało żądania dla POST /quizzes/{quiz_id}/results
+export interface ResultCreateDto {
+  score: number;
+  max_score: number;
+}
+
+// --- ViewModels for Quiz Taking ---
+
+// Typ określający status wizualny odpowiedzi w UI
+export type AnswerStatus = 'default' | 'selected' | 'correct' | 'incorrect';
+
+// Model widoku dla pojedynczej odpowiedzi
+export interface AnswerStateViewModel {
+  id: number;
+  text: string;
+  status: AnswerStatus;
 } 

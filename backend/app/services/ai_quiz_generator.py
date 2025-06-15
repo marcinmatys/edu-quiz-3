@@ -78,7 +78,7 @@ class AIQuizGeneratorService:
         
         Return the result in JSON format with the following structure:
         {{
-            "title": "Quiz title related to the topic",
+            "title": "Concise Quiz title related to the topic (omit level information)",
             "questions": [
                 {{
                     "text": "Question text",

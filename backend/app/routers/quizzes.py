@@ -13,6 +13,7 @@ from ..schemas.quiz import (
 )
 from ..schemas.question import AnswerCheckResponse
 from ..schemas.answer import AnswerCheck
+from ..schemas.result import ResultRead, ResultCreate
 from ..models.user import User
 from ..crud.quiz import get_quizzes, remove_quiz
 
@@ -293,6 +294,84 @@ async def check_answer(
     except Exception as e:
         # Handle unexpected errors
         logger.exception(f"Unexpected error checking answer for quiz {quiz_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred"
+        )
+
+@router.post(
+    "/{quiz_id}/results",
+    response_model=ResultRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Submit quiz result",
+    description="Submit a student's result for a completed quiz. If the student has already completed this quiz, the existing result will be updated; otherwise, a new result will be created."
+)
+async def submit_quiz_result(
+    quiz_id: int,
+    result_data: ResultCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_student)
+):
+    """
+    Submit a student's result for a completed quiz
+    
+    - **quiz_id**: ID of the completed quiz
+    - **result_data**: Score and max_score data
+    
+    Only student users can use this endpoint.
+    """
+    try:
+        # Get quiz to verify it exists
+        quiz = await quiz_service.get_quiz_by_id(db=db, quiz_id=quiz_id)
+        
+        # Verify that max_score matches the number of questions
+        question_count = len(quiz.questions)
+        if result_data.max_score != question_count:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"max_score must match the number of questions ({question_count})"
+            )
+        
+        # Verify that score is not greater than max_score
+        if result_data.score > result_data.max_score:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="score cannot be greater than max_score"
+            )
+        
+        # Check if result already exists for this user and quiz
+        from ..crud import result as result_crud
+        existing_result = await result_crud.get_by_user_and_quiz(
+            db=db, 
+            user_id=current_user.id, 
+            quiz_id=quiz_id
+        )
+        
+        # Update or create result
+        if existing_result:
+            # Update existing result
+            updated_result = await result_crud.update(
+                db=db,
+                db_obj=existing_result,
+                obj_in=result_data
+            )
+            return updated_result
+        else:
+            # Create new result
+            new_result = await result_crud.create_with_owner(
+                db=db,
+                obj_in=result_data,
+                user_id=current_user.id,
+                quiz_id=quiz_id
+            )
+            return new_result
+            
+    except HTTPException as e:
+        # Re-raise HTTP exceptions
+        raise e
+    except Exception as e:
+        # Handle unexpected errors
+        logger.exception(f"Unexpected error submitting quiz result: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An unexpected error occurred"

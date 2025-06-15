@@ -51,7 +51,7 @@ Ten punkt końcowy umożliwia uwierzytelnionemu użytkownikowi z rolą "student"
 5.  Endpoint pobiera liczbę pytań dla danego quizu i porównuje ją z `max_score` z żądania. Jeśli wartości się nie zgadzają, zwraca `422 Unprocessable Entity`.
 6.  Endpoint weryfikuje, czy `score <= max_score`. Jeśli nie, zwraca `422 Unprocessable Entity`.
 7.  System sprawdza, czy w tabeli `results` istnieje już wpis dla `user_id` (z tokena) i `quiz_id`.
-8.  - **Jeśli wynik istnieje**: System aktualizuje istniejący rekord w tabeli `results` nowymi wartościami `score` i `updated_at`.
+8.  - **Jeśli wynik istnieje**: System aktualizuje istniejący rekord w tabeli `results` nowymi wartościami `score`,`max_score` i `updated_at`.
     - **Jeśli wynik nie istnieje**: System tworzy nowy rekord w tabeli `results`, używając `user_id`, `quiz_id` oraz danych z ciała żądania.
 9.  System zwraca odpowiedź `201 Created` wraz z danymi utworzonego/zaktualizowanego wyniku (zgodnie ze schematem `ResultRead`).
 
@@ -79,7 +79,7 @@ Ten punkt końcowy umożliwia uwierzytelnionemu użytkownikowi z rolą "student"
 1.  **Aktualizacja schematów (Schemas)**:
     - Upewnij się, że schematy `ResultCreate` i `ResultRead` w `backend/app/schemas/result.py` są zgodne z wymaganiami.
 2.  **Warstwa dostępu do danych (CRUD)**:
-    - Utwórz plik `backend/app/crud/crud_result.py`.
+    - Utwórz plik `backend/app/crud/result.py`.
     - Zaimplementuj funkcję `get_by_user_and_quiz(db, user_id, quiz_id)` do pobierania istniejącego wyniku.
     - Zaimplementuj funkcję `create_with_owner(db, obj_in, user_id, quiz_id)` do tworzenia nowego wyniku.
     - Zaimplementuj funkcję `update(db, db_obj, obj_in)` do aktualizacji istniejącego wyniku.

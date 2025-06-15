@@ -1,22 +1,25 @@
 import logging
 from typing import Optional
-import httpx
 import os
-from fastapi import HTTPException, status
+from openai import OpenAI, AsyncOpenAI
+
+from ..core.config import settings
 
 logger = logging.getLogger(__name__)
 
 class AIService:
     """Service for AI-powered features"""
     
-    def __init__(self):
+    def __init__(self, openai_api_key: Optional[str] = None):
         """Initialize the AI service"""
-        self.api_key = os.getenv("OPENAI_API_KEY")
-        self.api_url = "https://api.openai.com/v1/chat/completions"
-        self.model = "gpt-3.5-turbo"
+        self.api_key = openai_api_key or settings.OPENAI_API_KEY
+        logger.info(f"OpenAI API key: {self.api_key}")
+        self.client = AsyncOpenAI(api_key=self.api_key)
+        self.sync_client = OpenAI(api_key=self.api_key)
+        self.model = "gpt-4.1"
         
         if not self.api_key:
-            logger.warning("OPENAI_API_KEY environment variable not set")
+            logger.warning("OPENAI_API_KEY not set in environment or settings")
     
     async def generate_explanation(
         self,
@@ -40,9 +43,6 @@ class AIService:
             
         Returns:
             Generated explanation text
-            
-        Raises:
-            HTTPException: If there's an error with the AI service
         """
         try:
             # Check if API key is available
@@ -58,7 +58,8 @@ class AIService:
                     f"Question: {question_text}\n"
                     f"Correct answer: {correct_answer_text}\n\n"
                     f"The student answered correctly. Provide a brief (2-3 sentences) explanation "
-                    f"of why this answer is correct. Use simple language appropriate for the quiz level."
+                    f"of why this answer is correct. You may refer to relevant rules, principles, or facts if helpful. "
+                    f"Use simple language appropriate for the quiz level."
                 )
             else:
                 prompt = (
@@ -69,45 +70,68 @@ class AIService:
                     f"Student's answer: {student_answer_text}\n\n"
                     f"The student answered incorrectly. Provide a brief (2-3 sentences) explanation "
                     f"of why the correct answer is right and where the student's answer went wrong. "
+                    f"You may refer to relevant rules, principles, or facts if helpful. "
                     f"Use simple language appropriate for the quiz level."
                 )
             
-            # Prepare API request
-            headers = {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {self.api_key}"
-            }
-            
-            payload = {
-                "model": self.model,
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.7,
-                "max_tokens": 150
-            }
-            
-            # Make API call with timeout
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    self.api_url,
-                    headers=headers,
-                    json=payload,
-                    timeout=10.0  # 10 second timeout
-                )
+            try:
+                # Try async call first
+                response = await self._call_openai_api(prompt)
+                return response.strip()
+            except Exception as e:
+                logger.warning(f"Async API call failed, trying synchronous fallback: {str(e)}")
+                try:
+                    # Fallback to synchronous call
+                    response = self._call_openai_api_sync(prompt)
+                    return response.strip()
+                except Exception as e:
+                    logger.error(f"Error generating explanation with AI: {str(e)}")
+                    return "Explanation not available due to an unexpected error."
                 
-                response_data = response.json()
-                
-                if response.status_code != 200:
-                    logger.error(f"AI service error: {response_data}")
-                    return "Explanation not available due to a service error."
-                
-                # Extract explanation from response
-                explanation = response_data["choices"][0]["message"]["content"].strip()
-                return explanation
-                
-        except httpx.TimeoutException:
-            logger.error("AI service timeout")
-            return "Explanation not available due to service timeout."
-            
         except Exception as e:
             logger.exception(f"Error generating explanation: {str(e)}")
-            return "Explanation not available due to an unexpected error." 
+            return "Explanation not available due to an unexpected error."
+    
+    async def _call_openai_api(self, prompt: str) -> str:
+        """
+        Call the OpenAI API to generate explanation
+        
+        Args:
+            prompt: The prompt to send to the API
+            
+        Returns:
+            String containing the API response content
+        """
+        response = await self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": "You are an educational assistant explaining quiz answers."},
+                {"role": "user", "content": prompt}
+            ],
+            timeout=10.0,
+            temperature=0.7,
+            max_tokens=150
+        )
+        return response.choices[0].message.content
+    
+    def _call_openai_api_sync(self, prompt: str) -> str:
+        """
+        Call the OpenAI API synchronously to generate explanation
+        
+        Args:
+            prompt: The prompt to send to the API
+            
+        Returns:
+            String containing the API response content
+        """
+        response = self.sync_client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": "You are an educational assistant explaining quiz answers."},
+                {"role": "user", "content": prompt}
+            ],
+            timeout=10.0,
+            temperature=0.7,
+            max_tokens=150
+        )
+        return response.choices[0].message.content 
