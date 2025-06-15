@@ -207,6 +207,7 @@ This project is currently in the **MVP phase**. Core minimum features are being 
 
 -   **Tools used:** Cursor
 -   **Models used:** **gemini-2.5-pro**, **claude-3.7-sonet**, o3-mini, gpt-4.1
+-   **Used Cursor requests:** about 300
 -   **Work time:** Approximately one week
 -   **Number of files in the project:** 185
 -   **Number of lines of code/documentation in the project:** 24,745
