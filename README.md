@@ -15,7 +15,8 @@ An educational application for creating and conducting interactive, AI-powered q
 7. [User Interface](#user-interface)
 8. [Project Scope](#project-scope)
 9. [Project Status](#project-status)
-10. [License](#license)
+10. [Development Information/Statistics](#development-informationstatistics)
+11. [License](#license)
 
 ## Project Description
 
@@ -57,6 +58,10 @@ This project is split into two main parts:
 - **backend/**: Python FastAPI + SQLite (API server)
 
 The backend is organized for future scalability, with distinct modules for routers, models, schemas, database connections, and core configuration.
+
+For more detailed information about the backend structure, API endpoints, testing procedures, and rate limiting configuration, see the [Backend README](backend/README.md).
+
+For comprehensive database management options, including GUI tools, command-line interfaces, debug endpoints, and programmatic access via SQLAlchemy, refer to the [Database Documentation](backend/README-db.md).
 
 ## Getting Started Locally
 
@@ -196,6 +201,18 @@ Below are screenshots of the key interfaces in the application:
 
 ## Project Status
 This project is currently in the **MVP phase**. Core minimum features are being built and tested.
+
+## Development Information/Statistics
+
+-   **Tools used:** Cursor
+-   **Models used:** **gemini-2.5-pro**, **claude-3.7-sonet**, o3-mini, gpt-4.1
+-   **Work time:** Approximately one week
+-   **Number of files in the project:** 185
+-   **Number of lines of code/documentation in the project:** 24,745
+-   **Percentage of generated (by AI) code/documentation:** I'd say around 98%
+-   **Development Approach and Notes** – The MVP concept for the project was initially written manually. This was followed by fully supervised planning of individual tasks and implementation in collaboration with Cursor. The project was created as part of completing the [10xDevs training program](https://www.10xdevs.pl/). Throughout its development, I relied heavily on the knowledge, work techniques, and prompts provided during the course. However, the project was built using my own technology stack, with the frontend technologies partially overlapping with those recommended in the training.
+-   **Code Quality Disclaimer** – While the code quality may not be optimal in all areas, the project was developed under tight time constraints for educational purposes and as part of the 10xDevs training completion. The main goal was to demonstrate how, with the right techniques and tools like Cursor, it’s possible to rapidly deliver a functional MVP version of an application.
+
 
 ## License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE.md) file for details.
