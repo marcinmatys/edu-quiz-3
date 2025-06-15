@@ -42,12 +42,16 @@ Do implementacji zostaną wykorzystane następujące schematy Pydantic z modułu
 3.  Uruchamiana jest zależność (dependency) bezpieczeństwa, która weryfikuje token JWT, sprawdza, czy użytkownik jest aktywny i posiada rolę `student`.
 4.  Router wywołuje funkcję serwisową, np. `quiz_service.check_answer(db, quiz_id, answer_check_data, current_user)`.
 5.  Serwis wykonuje następujące operacje:
-    a. Pobiera z bazy danych quiz o podanym `quiz_id`. Sprawdza, czy quiz istnieje i ma status `published`. Jeśli nie, zwraca błąd `404 Not Found`.
-    b. Pobiera z bazy pytanie o `question_id` i sprawdza, czy jest ono powiązane z pobranym quizem. Jeśli nie, zwraca błąd `404 Not Found`.
-    c. Pobiera z bazy wybraną przez studenta odpowiedź (`answer_id`) oraz wszystkie pozostałe odpowiedzi dla danego pytania. Sprawdza, czy wybrana odpowiedź należy do pytania. Jeśli nie, zwraca błąd `404 Not Found`.
-    d. Ustala, czy wybrana odpowiedź jest poprawna (`is_correct`) i identyfikuje ID poprawnej odpowiedzi.
-    e. Wywołuje serwis AI (np. `ai_service.generate_explanation()`), przekazując tekst pytania i tekst poprawnej odpowiedzi, aby uzyskać wyjaśnienie.
-    f. Konstruuje obiekt DTO `AnswerCheckResponse` z uzyskanymi danymi.
+    a. Wywołuje metodę `get_quiz_by_id(db, quiz_id)` z `QuizService`, która pobiera z bazy danych pełny obiekt quizu wraz z listą pytań i ich odpowiedziami.
+    b. Sprawdza, czy pobrany quiz istnieje i ma status `published`. Jeśli nie, zwraca błąd `404 Not Found`.
+    c. Wyszukuje w pamięci (na pobranym obiekcie) pytanie o zadanym `question_id`. Jeśli pytanie nie należy do tego quizu, zwraca błąd `404 Not Found`.
+    d. Wyszukuje w pamięci (w ramach znalezionego pytania) odpowiedź o zadanym `answer_id`. Jeśli odpowiedź nie należy do tego pytania, zwraca błąd `404 Not Found`.
+    e. Ustala, czy wybrana odpowiedź jest poprawna (`is_correct`) i identyfikuje ID oraz treść poprawnej odpowiedzi.
+    f. Wywołuje serwis AI (`ai_service.generate_explanation(...)`) w celu uzyskania wyjaśnienia. Proces ten obejmuje:
+        i. Przygotowanie danych wejściowych: tytuł i poziom zaawansowania quizu, treść pytania, treść poprawnej odpowiedzi oraz (jeśli udzielono błędnej) treść odpowiedzi studenta.
+        ii. Skonstruowanie precyzyjnego promptu dla modelu językowego (LLM), zlecającego wygenerowanie zwięzłego (do kilku zdań) wyjaśnienia, które tłumaczy, dlaczego odpowiedź jest poprawna i ewentualnie odnosi się do błędu studenta.
+        iii. Wysłanie zapytania do API (np. OpenAI) i odebranie odpowiedzi.
+    g. Konstruuje obiekt DTO `AnswerCheckResponse` z uzyskanymi danymi (włączając wyjaśnienie od AI).
 6.  Router odbiera DTO od serwisu i zwraca klientowi odpowiedź `200 OK` z serializowanym obiektem.
 
 ## 6. Względy bezpieczeństwa
@@ -66,19 +70,20 @@ Należy zaimplementować spójną obsługę błędów z odpowiednimi kodami stan
   - Nie znaleziono pytania o podanym `question_id` w ramach danego quizu.
   - Nie znaleziono odpowiedzi o podanym `answer_id` w ramach danego pytania.
 - **`422 Unprocessable Entity`**: Ciało żądania jest nieprawidłowe (np. brakuje pól, zły typ danych). Obsługiwane automatycznie przez FastAPI.
-- **`500 Internal Server Error`**: Wystąpił błąd po stronie serwera, np. błąd połączenia z bazą danych lub błąd podczas komunikacji z zewnętrznym serwisem AI. Należy zalogować szczegóły błędu.
+- **`500 Internal Server Error`**: Wystąpił błąd po stronie serwera, np. błąd połączenia z bazą danych lub błąd podczas komunikacji z zewnętrznym serwisem AI. Należy zalogować szczegóły błędu. Należy również obsłużyć przypadki, gdy odpowiedź z serwisu AI jest pusta lub niepoprawna.
 
 ## 8. Rozważania dotyczące wydajności
 - Główne potencjalne wąskie gardło to czas odpowiedzi zewnętrznego serwisu AI generującego wyjaśnienie.
+- Złożoność promptu i ilość danych przesyłanych do serwisu AI może wpłynąć na czas odpowiedzi. Prompt powinien być zwięzły, ale kompletny.
 - Należy rozważyć zaimplementowanie `timeout` dla zapytania do serwisu AI, aby uniknąć długiego oczekiwania klienta w przypadku problemów z usługą.
-- Zapytania do bazy danych powinny być zoptymalizowane i korzystać z indeksów na kluczach obcych (`quiz_id`, `question_id`).
+- Zamiast wykonywać wiele oddzielnych zapytań do bazy danych, `get_quiz_by_id` powinien za jednym razem pobrać cały graf obiektu (quiz z pytaniami i odpowiedziami), np. przy użyciu `selectinload` w SQLAlchemy. Może to zmniejszyć opóźnienie związane z komunikacją z bazą danych.
 
 ## 9. Etapy wdrożenia
 1.  **Router**: W pliku `backend/app/routers/quiz.py` dodać nową operację ścieżki dla `POST /quizzes/{quiz_id}/check-answer`.
 2.  **Bezpieczeństwo**: Zaimplementować i dołączyć zależność (dependency), która weryfikuje uwierzytelnienie i rolę `student`.
-3.  **Serwis AI**: Jeśli nie istnieje, stworzyć nowy moduł `backend/app/services/ai_service.py` z funkcją `generate_explanation(question_text: str, correct_answer_text: str) -> str`, która będzie komunikować się z API OpenAI.
+3.  **Serwis AI**: Stworzyć lub zaktualizować moduł `backend/app/services/ai_service.py`. Zaimplementować w nim funkcję `generate_explanation`, która będzie przyjmować dane kontekstowe (tytuł quizu, poziom), treść pytania, treść poprawnej odpowiedzi oraz opcjonalnie błędną odpowiedź studenta. Funkcja będzie odpowiedzialna za budowę promptu, komunikację z API OpenAI i zapewnienie, że wygenerowane wyjaśnienie jest zwięzłe.
 4.  **Serwis Quizu**: W module `backend/app/services/quiz_service.py` (lub podobnym) zaimplementować główną logikę w funkcji `check_answer(...)`.
-5.  **CRUD**: Wykorzystać istniejące funkcje CRUD (`crud.quiz.get`, `crud.question.get`, `crud.answer.get`) do pobierania danych z bazy. Upewnić się, że funkcje te pozwalają na efektywne filtrowanie i weryfikację przynależności (np. `crud.question.get_by_quiz_id`).
+5.  **Serwis/CRUD**: Zaimplementować lub wykorzystać istniejącą metodę `quiz_service.get_quiz_by_id(db, quiz_id)`, która efektywnie pobiera cały obiekt quizu, włączając w to pytania i odpowiedzi (np. z użyciem `selectinload` w warstwie CRUD).
 6.  **Integracja**: Połączyć logikę w routerze, wywołując serwis i obsługując zwracane przez niego dane lub wyjątki.
 7.  **Testy**: Stworzyć testy jednostkowe dla logiki w serwisie, obejmujące przypadki sukcesu i wszystkie scenariusze błędów.
 8.  **Testy integracyjne**: Dodać testy dla całego endpointu, symulując żądania HTTP i weryfikując odpowiedzi, w tym kody statusu i strukturę danych. Należy zamockować wywołanie serwisu AI.

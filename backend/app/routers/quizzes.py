@@ -4,13 +4,15 @@ from typing import List, Optional, Literal
 import logging
 
 from ..db import get_db
-from ..core.security import get_current_active_admin, get_current_active_user
+from ..core.security import get_current_active_admin, get_current_active_user, get_current_active_student
 from ..services.quiz_service import QuizService
 from ..services.ai_quiz_generator import AIGenerationError
 from ..schemas.quiz import (
     QuizCreate, QuizGenerationResponse, QuizReadList, 
     QuizReadDetail, QuizReadDetailStudent, QuizUpdate
 )
+from ..schemas.question import AnswerCheckResponse
+from ..schemas.answer import AnswerCheck
 from ..models.user import User
 from ..crud.quiz import get_quizzes, remove_quiz
 
@@ -245,6 +247,52 @@ async def delete_quiz(
     except Exception as e:
         # Handle unexpected errors
         logger.exception(f"Unexpected error deleting quiz {quiz_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred"
+        )
+
+@router.post(
+    "/{quiz_id}/check-answer",
+    response_model=AnswerCheckResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Check a student's answer to a quiz question",
+    description="Check if a student's answer to a quiz question is correct. Returns correctness info and AI-generated explanation."
+)
+async def check_answer(
+    quiz_id: int,
+    answer_check_data: AnswerCheck,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_student)
+):
+    """
+    Check if a student's answer to a quiz question is correct
+    
+    - **quiz_id**: ID of the quiz
+    - **question_id**: ID of the question being answered
+    - **answer_id**: ID of the student's selected answer
+    
+    Returns:
+    - **is_correct**: Whether the answer is correct
+    - **correct_answer_id**: ID of the correct answer
+    - **explanation**: AI-generated explanation of the answer
+    
+    Only student users can use this endpoint.
+    """
+    try:
+        result = await quiz_service.check_answer(
+            db=db,
+            quiz_id=quiz_id,
+            answer_check_data=answer_check_data,
+            current_user=current_user
+        )
+        return result
+    except HTTPException:
+        # Re-raise HTTP exceptions from service
+        raise
+    except Exception as e:
+        # Handle unexpected errors
+        logger.exception(f"Unexpected error checking answer for quiz {quiz_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An unexpected error occurred"

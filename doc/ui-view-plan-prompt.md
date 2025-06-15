@@ -2,7 +2,8 @@ Jako starszy programista frontendu Twoim zadaniem jest stworzenie szczegółoweg
 
 Wybrany widok:
 <selected_view>
-5. Widok Panelu Ucznia
+6. Widok Rozwiązywania Quizu
+7. Widok Podsumowania Quizu
 </selected_view>
 
 Najpierw przejrzyj następujące informacje:
@@ -19,46 +20,84 @@ Najpierw przejrzyj następujące informacje:
 
 3. User Stories:
 <user_stories>
-*   ID: US-007
-*   Tytuł: Przeglądanie listy dostępnych quizów
-*   Opis: Jako uczeń chcę widzieć listę wszystkich opublikowanych quizów, posortowaną według poziomu trudności, abym mógł wybrać interesujący mnie test.
+*   ID: US-008
+*   Tytuł: Rozwiązywanie quizu
+*   Opis: Jako uczeń chcę móc uruchomić wybrany quiz i odpowiadać na pytania, aby sprawdzić swoją wiedzę.
 *   Kryteria akceptacji:
-    *   Po zalogowaniu uczeń widzi listę dostępnych quizów.
-    *   Quizy są domyślnie posortowane rosnąco według poziomu zaawansowania.
-    *   Każdy element listy zawiera: temat quizu, poziom zaawansowania, liczbę pytań oraz mój ostatni wynik (jeśli quiz był już rozwiązywany).
-    *   Jeśli quiz nie był jeszcze rozwiązywany, informacja o wyniku nie jest wyświetlana.
+    *   Po kliknięciu na quiz z listy, rozpoczyna się jego rozwiązywanie.
+    *   Na ekranie wyświetlane jest jedno pytanie i cztery możliwe odpowiedzi.
+    *   Uczeń może wybrać tylko jedną odpowiedź.
+    *   Po wybraniu odpowiedzi przechodzi do następnego pytania.
+    *   Quiz nie ma limitu czasowego.
+    *   Jeśli przerwę quiz w trakcie, mój postęp nie jest zapisywany i muszę zacząć od nowa.
+
+*   ID: US-009
+*   Tytuł: Otrzymywanie natychmiastowej informacji zwrotnej
+*   Opis: Jako uczeń, po udzieleniu odpowiedzi na pytanie, chcę od razu dowiedzieć się, czy była ona poprawna, oraz otrzymać krótki komentarz od AI, aby lepiej zrozumieć zagadnienie.
+*   Kryteria akceptacji:
+    *   Po wybraniu odpowiedzi system natychmiast oznacza ją jako poprawną (np. na zielono) lub niepoprawną (np. na czerwono).
+    *   W przypadku błędnej odpowiedzi, system wskazuje poprawną odpowiedź.
+    *   Pod odpowiedzią pojawia się krótki, wygenerowany przez AI komentarz dotyczący pytania/odpowiedzi.
+
+*   ID: US-010
+*   Tytuł: Zakończenie quizu i przegląd wyników
+*   Opis: Jako uczeń, po odpowiedzeniu na wszystkie pytania, chcę zobaczyć swoje podsumowanie wyników, aby ocenić poziom swojej wiedzy.
+*   Kryteria akceptacji:
+    *   Po udzieleniu odpowiedzi na ostatnie pytanie, wyświetla się ekran podsumowania.
+    *   Ekran podsumowania zawiera wynik w formacie `poprawne/wszystkie` (np. 7/10).
+    *   Wynik zostaje zapisany na moim koncie jako "ostatni wynik" dla tego quizu.
+    *   Z ekranu podsumowania mogę wrócić do listy quizów.
 </user_stories>
 
 4. Endpoint Description:
 <endpoint_description>
 
-#### GET /quizzes
+#### POST /quizzes/{quiz_id}/check-answer
 
-- **Description**: Retrieves a list of quizzes. Admins see all quizzes; students see only 'published' ones.
-- **Authentication**: Required.
-- **Query Parameters**:
-  - `sort_by` (string, optional, e.g., 'level'): Field to sort by. Defaults to `level`.
-  - `order` (string, optional, 'asc' or 'desc'): Sort order. Defaults to `asc`.
-  - `status` (string, optional, 'draft' or 'published'): Filters by status. (Admin only).
+- **Description**: Checks a single answer for a student, providing immediate feedback and an AI-generated explanation without persisting data.
+- **Authentication**: Required (Student only).
+- **Request Body**:
+  ```json
+  {
+    "question_id": 1,
+    "answer_id": 2
+  }
+  ```
 - **Success Response**: `200 OK`
   ```json
-  [
-    {
-      "id": 1,
-      "title": "Historia Polski",
-      "status": "published",
-      "level_id": 5,
-      "creator_id": 1,
-      "question_count": 10,
-      "last_result": { // Present only for students who have a result
-        "score": 8,
-        "max_score": 10
-      },
-      "updated_at": "2023-10-27T12:00:00Z"
-    }
-  ]
+  {
+    "is_correct": true,
+    "correct_answer_id": 2,
+    "explanation": "Bolesław Chrobry został koronowany w 1025 roku, co czyni go pierwszym królem Polski."
+  }
   ```
-- **Error Response**: `401 Unauthorized`
+- **Error Response**: `404 Not Found`, `422 Unprocessable Entity`.
+
+---
+
+#### POST /quizzes/{quiz_id}/results
+
+- **Description**: Submits the final results of a completed quiz for a student. Creates or updates the result entry.
+- **Authentication**: Required (Student only).
+- **Request Body**:
+  ```json
+  {
+    "score": 8,
+    "max_score": 10
+  }
+  ```
+- **Success Response**: `201 Created`
+  ```json
+  {
+    "id": 5,
+    "score": 8,
+    "max_score": 10,
+    "user_id": 2,
+    "quiz_id": 1,
+    "created_at": "2023-10-27T14:00:00Z"
+  }
+  ```
+- **Error Response**: `404 Not Found`, `422 Unprocessable Entity`.
 
 
 </endpoint_description>
@@ -119,7 +158,7 @@ Po przeprowadzeniu analizy dostarcz plan wdrożenia w formacie Markdown z nastę
 
 Upewnij się, że Twój plan jest zgodny z PRD, historyjkami użytkownika i uwzględnia dostarczony stack technologiczny.
 
-Ostateczne wyniki powinny być w języku polskim i zapisane w pliku o nazwie doc/view-implementation-plan-student-quizzes.md. Nie uwzględniaj żadnej analizy i planowania w końcowym wyniku.
+Ostateczne wyniki powinny być w języku polskim i zapisane w pliku o nazwie doc/view-implementation-plan-quiz-take.md. Nie uwzględniaj żadnej analizy i planowania w końcowym wyniku.
 
 Oto przykład tego, jak powinien wyglądać plik wyjściowy (treść jest do zastąpienia):
 
@@ -171,4 +210,4 @@ Oto przykład tego, jak powinien wyglądać plik wyjściowy (treść jest do zas
 3. [...]
 ```
 
-Rozpocznij analizę i planowanie wyłącznie dla wybranego widoku (selected_view) już teraz. Twój ostateczny wynik powinien składać się wyłącznie z planu wdrożenia w języku polskim w formacie markdown, który zapiszesz w pliku doc/view-implementation-plan-student-quizzes.md i nie powinien powielać ani powtarzać żadnej pracy wykonanej w podziale implementacji.
+Rozpocznij analizę i planowanie wyłącznie dla wybranego widoku (selected_view) już teraz. Twój ostateczny wynik powinien składać się wyłącznie z planu wdrożenia w języku polskim w formacie markdown, który zapiszesz w pliku doc/view-implementation-plan-quiz-take.md i nie powinien powielać ani powtarzać żadnej pracy wykonanej w podziale implementacji.

@@ -4,23 +4,26 @@ Zanim zaczniemy, zapoznaj się z poniższymi informacjami:
 
 1. Route API specification:
 <route_api_specification>
-#### POST /quizzes/{quiz_id}/check-answer
+#### POST /quizzes/{quiz_id}/results
 
-- **Description**: Checks a single answer for a student, providing immediate feedback and an AI-generated explanation without persisting data.
+- **Description**: Submits the final results of a completed quiz for a student. Creates or updates the result entry.
 - **Authentication**: Required (Student only).
 - **Request Body**:
   ```json
   {
-    "question_id": 1,
-    "answer_id": 2
+    "score": 8,
+    "max_score": 10
   }
   ```
-- **Success Response**: `200 OK`
+- **Success Response**: `201 Created`
   ```json
   {
-    "is_correct": true,
-    "correct_answer_id": 2,
-    "explanation": "Bolesław Chrobry został koronowany w 1025 roku, co czyni go pierwszym królem Polski."
+    "id": 5,
+    "score": 8,
+    "max_score": 10,
+    "user_id": 2,
+    "quiz_id": 1,
+    "created_at": "2023-10-27T14:00:00Z"
   }
   ```
 - **Error Response**: `404 Not Found`, `422 Unprocessable Entity`.
@@ -203,4 +206,4 @@ Końcowym wynikiem powinien być dobrze zorganizowany plan wdrożenia w formacie
 
 Końcowe wyniki powinny składać się wyłącznie z planu wdrożenia w formacie markdown i nie powinny powielać ani powtarzać żadnej pracy wykonanej w sekcji analizy.
 
-Pamiętaj, aby zapisać swój plan wdrożenia jako doc/endpoint-quizzes-check-answer-plan.md. Upewnij się, że plan jest szczegółowy, przejrzysty i zapewnia kompleksowe wskazówki dla zespołu programistów.
+Pamiętaj, aby zapisać swój plan wdrożenia jako doc/endpoint-quizzes-result-plan.md. Upewnij się, że plan jest szczegółowy, przejrzysty i zapewnia kompleksowe wskazówki dla zespołu programistów.

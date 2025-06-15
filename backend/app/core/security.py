@@ -110,6 +110,17 @@ async def get_current_active_admin(current_user = Depends(get_current_active_use
         )
     return current_user
 
+async def get_current_active_student(current_user = Depends(get_current_active_user)):
+    """
+    Check if current user is an active student
+    """
+    if current_user.role != 'student':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only students can access this endpoint"
+        )
+    return current_user
+
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     """
     Create JWT access token

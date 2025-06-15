@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import select, func, desc, asc
@@ -22,9 +22,10 @@ from ..models.result import Result
 from ..models.level import Level
 from ..models.user import User
 from ..schemas.quiz import QuizCreate, QuizGenerationResponse, QuizReadList, QuizUpdate
-from ..schemas.question import QuestionCreate, QuestionCreateOrUpdate
-from ..schemas.answer import AnswerCreate, AnswerCreateOrUpdate
+from ..schemas.question import QuestionCreate, QuestionCreateOrUpdate, AnswerCheckResponse
+from ..schemas.answer import AnswerCreate, AnswerCreateOrUpdate, AnswerCheck
 from ..services.ai_quiz_generator import AIQuizGeneratorService, AIGenerationError
+from ..services.ai_service import AIService
 from fastapi import HTTPException, status
 
 logger = logging.getLogger(__name__)
@@ -448,4 +449,99 @@ class QuizService:
             question_data=question_create
         )
         
-        return question 
+        return question
+
+    async def check_answer(
+        self,
+        db: AsyncSession,
+        quiz_id: int,
+        answer_check_data: AnswerCheck,
+        current_user: User
+    ) -> AnswerCheckResponse:
+        """
+        Check if a student's answer to a quiz question is correct
+        
+        Args:
+            db: Database session
+            quiz_id: ID of the quiz
+            answer_check_data: Student's answer data (question_id and answer_id)
+            current_user: Current user (must be a student)
+            
+        Returns:
+            AnswerCheckResponse with correctness info and explanation
+            
+        Raises:
+            HTTPException: If quiz not found, not published, or answer/question not found
+            HTTPException: If user is not a student
+        """
+        # Verify user is a student
+        if current_user.role != "student":
+            logger.warning(f"User {current_user.id} with role {current_user.role} attempted to check answer")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only students can check answers"
+            )
+        
+        # Get quiz with questions and answers
+        quiz = await self.get_quiz_by_id(db=db, quiz_id=quiz_id)
+        
+        # Verify quiz is published
+        if quiz.status != "published":
+            logger.warning(f"Attempt to check answer for unpublished quiz {quiz_id}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Quiz not found or not published"
+            )
+        
+        # Find the question in the quiz
+        question = next((q for q in quiz.questions if q.id == answer_check_data.question_id), None)
+        if not question:
+            logger.warning(f"Question {answer_check_data.question_id} not found in quiz {quiz_id}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Question not found in this quiz"
+            )
+        
+        # Find the selected answer in the question
+        selected_answer = next((a for a in question.answers if a.id == answer_check_data.answer_id), None)
+        if not selected_answer:
+            logger.warning(f"Answer {answer_check_data.answer_id} not found in question {question.id}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Answer not found for this question"
+            )
+        
+        # Find the correct answer
+        correct_answer = next((a for a in question.answers if a.is_correct), None)
+        if not correct_answer:
+            logger.error(f"No correct answer found for question {question.id}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Question has no correct answer defined"
+            )
+        
+        # Check if the selected answer is correct
+        is_correct = selected_answer.is_correct
+        
+        # Get the level description for the AI explanation
+        level_result = await db.execute(select(Level).where(Level.id == quiz.level_id))
+        level = level_result.scalar_one_or_none()
+        level_description = level.description if level else "Standard"
+        
+        # Generate explanation with AI
+        ai_service = AIService()
+        explanation = await ai_service.generate_explanation(
+            quiz_title=quiz.title,
+            quiz_level=level_description,
+            question_text=question.text,
+            correct_answer_text=correct_answer.text,
+            student_answer_text=None if is_correct else selected_answer.text,
+            is_student_correct=is_correct
+        )
+        
+        # Return the response
+        return AnswerCheckResponse(
+            is_correct=is_correct,
+            correct_answer_id=correct_answer.id,
+            explanation=explanation
+        ) 
