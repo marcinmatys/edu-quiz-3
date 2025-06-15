@@ -57,7 +57,12 @@ export function NavBar() {
               <span className="text-sm">
                 Zalogowany jako: <strong>{user.username}</strong> ({user.role})
               </span>
-              <Button variant="outline" size="sm" onClick={handleLogout}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLogout}
+                className="text-white border border-white hover:bg-white hover:text-slate-800"
+              >
                 Wyloguj
               </Button>
             </>

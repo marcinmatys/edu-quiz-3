@@ -65,7 +65,7 @@ export function LoginPage() {
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Logowanie</CardTitle>
+          <CardTitle>EduQuiz</CardTitle>
           <CardDescription>Zaloguj się, aby uzyskać dostęp.</CardDescription>
         </CardHeader>
         <CardContent>

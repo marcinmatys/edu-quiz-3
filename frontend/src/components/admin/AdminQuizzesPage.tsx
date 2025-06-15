@@ -88,13 +88,6 @@ export const AdminQuizzesPage: React.FC = () => {
   // Renderowanie komponentu
   return (
     <div className="container mx-auto py-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Panel zarządzania quizami</h1>
-        <Button onClick={handleCreateQuiz}>
-          Stwórz nowy quiz
-        </Button>
-      </div>
-
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error.message}</AlertDescription>
@@ -115,6 +108,13 @@ export const AdminQuizzesPage: React.FC = () => {
         />
       ) : (
         <>
+          <div className="flex justify-between items-center">
+            <h1 className="text-3xl font-bold">Panel zarządzania quizami</h1>
+            <Button onClick={handleCreateQuiz}>
+              Stwórz nowy quiz
+            </Button>
+          </div>
+        
           <div className="flex justify-end">
             <Select
               value={filters.status}

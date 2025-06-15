@@ -6,6 +6,8 @@ import { LoginPage } from './pages/LoginPage';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import AdminQuizzesPage from './pages/admin/AdminQuizzesPage';
 import { StudentDashboard } from './pages/student/StudentDashboard';
+import { AdminLayoutRoute } from './components/layout/AdminLayoutRoute';
+import { StudentLayoutRoute } from './components/layout/StudentLayoutRoute';
 import './App.css';
 
 // Create a client
@@ -22,15 +24,19 @@ function App() {
             
             {/* Admin routes */}
             <Route path="/admin" element={<ProtectedRoute requiredRole="admin" />}>
-              <Route path="dashboard" element={<AdminDashboard />} />
-              <Route path="quizzes" element={<AdminQuizzesPage />} />
-              {/* Add more admin routes here */}
+              <Route element={<AdminLayoutRoute />}>
+                <Route path="dashboard" element={<AdminDashboard />} />
+                <Route path="quizzes" element={<AdminQuizzesPage />} />
+                {/* Add more admin routes here */}
+              </Route>
             </Route>
             
             {/* Student routes */}
             <Route path="/student" element={<ProtectedRoute requiredRole="student" />}>
-              <Route path="dashboard" element={<StudentDashboard />} />
-              {/* Add more student routes here */}
+              <Route element={<StudentLayoutRoute />}>
+                <Route path="dashboard" element={<StudentDashboard />} />
+                {/* Add more student routes here */}
+              </Route>
             </Route>
             
             {/* Redirect root to login */}
