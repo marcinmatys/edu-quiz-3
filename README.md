@@ -129,8 +129,6 @@ You can use the following credentials to log in and test the application:
     -   **Username:** `student`
     -   **Password:** `student123`
 
-
-
 ## User Interface
 
 Below are screenshots of the key interfaces in the application:
@@ -171,20 +169,36 @@ Below are screenshots of the key interfaces in the application:
 ## Project Scope
 
 ### Key Features (MVP)
--   **AI Quiz Generation:** Generate quizzes based on topic, number of questions, and grade level (1-8).
--   **Admin Panel:** Full lifecycle management for quizzes (create, review, edit, publish, delete).
--   **Single-Choice Questions:** All questions are multiple-choice with four answer options.
--   **Student View:** Browse and take published quizzes.
--   **Instant Feedback:** Immediate correct/incorrect feedback with AI-generated explanations.
--   **Results Summary:** View a final score (e.g., 7/10) upon quiz completion.
--   **Score Persistence:** The last score for each quiz is saved and displayed on the quiz list.
 
-### Out of Scope (For now)
--   User account management (the system uses one static admin and one static student account).
--   Admin view of detailed student statistics.
--   Time limits for quizzes.
--   Ability to resume an interrupted quiz.
--   Different types of questions (e.g., open-ended, multi-select).
+The MVP (Minimum Viable Product) delivers the core features for a complete quiz lifecycle: AI-powered creation, administrator management, and a dynamic and engaging learning experience for students.
+
+**Administrator Features:**
+-   **AI-Powered Quiz Generation:** Quickly create quizzes by specifying a topic, number of questions, and difficulty level (corresponding to school grades 1-8). The AI generates questions and four multiple-choice answer options.
+-   **Full Quiz Lifecycle Management:** A dedicated admin panel provides complete control over quizzes, including:
+    -   **Creation:** Generate new quizzes with AI assistance.
+    -   **Review & Edit:** Manually review and modify AI-generated content (questions, answers) to ensure quality.
+    -   **Publishing:** Publish quizzes to make them available for students, or unpublish them.
+    -   **Deletion:** Remove quizzes from the system.
+
+**Student Features:**
+-   **Quiz Library:** Browse a list of all published quizzes, sorted by difficulty level.
+-   **Taking Quizzes:** A simple and interactive interface for taking quizzes one question at a time.
+-   **Instant Feedback:** Receive immediate feedback after each answer. The system indicates if the answer was correct or incorrect and provides a brief, AI-generated explanation to aid learning.
+-   **Results Summary:** Upon completing a quiz, view a summary screen with the final score (e.g., 7/10).
+-   **Score Persistence:** The most recent score for each completed quiz is saved and displayed next to the quiz in the student's list, allowing them to track their performance.
+
+### Future Enhancements
+
+To keep the MVP focused, the following features are planned for future releases:
+
+-   **Full User Management:** Moving beyond the initial static accounts to allow for user registration, profile management, and distinct accounts for multiple students and admins.
+-   **Advanced Admin Analytics:** A comprehensive dashboard for administrators to view detailed statistics on student performance and quiz effectiveness.
+-   **Timed Quizzes:** The ability to set time limits for quizzes to add a layer of challenge.
+-   **Quiz Progression:** Allowing students to save their progress and resume interrupted quizzes at a later time.
+-   **Expanded Question Formats:** Introducing a variety of question types, such as multi-select, fill-in-the-blank, and open-ended questions.
+-   **Gamification Elements:** Implementing features like badges, points, and leaderboards to further motivate students.
+-   **Multimedia in Quizzes:** Adding support for including images or short video clips in questions and answers.
+-   **Deeper Learning Analytics:** Providing students with insights into their performance, highlighting strengths and areas needing improvement based on quiz results.
 
 ## Project Status
 This project is currently in the **MVP phase**. Core minimum features are being built and tested.
@@ -198,7 +212,7 @@ This project is currently in the **MVP phase**. Core minimum features are being 
 -   **Number of lines of code/documentation in the project:** 24,745
 -   **Percentage of generated (by AI) code/documentation:** I'd say around 98%
 -   **Development Approach and Notes** – The MVP concept for the project was initially written manually. This was followed by fully supervised planning of individual tasks and implementation in collaboration with Cursor. The project was created as part of completing the [10xDevs training program](https://www.10xdevs.pl/). Throughout its development, I relied heavily on the knowledge, work techniques, and prompts provided during the course. However, the project was built using my own technology stack, with the frontend technologies partially overlapping with those recommended in the training.
--   **Code Quality Disclaimer** – While the code quality may not be optimal in all areas, the project was developed under tight time constraints for educational purposes and as part of the 10xDevs training completion. The main goal was to demonstrate how, with the right techniques and tools like Cursor, it’s possible to rapidly deliver a functional MVP version of an application.
+-   **Code Quality Disclaimer** – While the code quality may not be optimal in all areas, the project was developed under tight time constraints for educational purposes and as part of the 10xDevs training completion. The main goal was to demonstrate how, with the right techniques and tools like Cursor, it's possible to rapidly deliver a functional MVP version of an application.
 
 
 ## License
