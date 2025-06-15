@@ -106,6 +106,24 @@ To set up and run the project on your local machine, follow these steps.
     ```
     The frontend will be running at `http://localhost:5173`.
 
+## Default user accounts
+
+On startup, the application automatically:
+- Creates all database tables if they don't exist
+- Seeds the database with:
+  - Predefined difficulty levels (Classes I-VIII)
+  - Default admin user
+  - Default student user
+
+You can use the following credentials to log in and test the application:
+
+-   **Admin User:**
+    -   **Username:** `admin`
+    -   **Password:** `admin123`
+-   **Student User:**
+    -   **Username:** `student`
+    -   **Password:** `student123`
+
 ## Available Scripts
 
 In the `frontend` directory, you can run the following scripts:
