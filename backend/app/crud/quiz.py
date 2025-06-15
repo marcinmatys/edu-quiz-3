@@ -122,4 +122,24 @@ async def update_quiz_status(
         quiz.status = status
         await db.flush()
         
+    return quiz
+
+async def remove_quiz(db: AsyncSession, quiz_id: int) -> Optional[Quiz]:
+    """
+    Remove a quiz by ID
+    
+    Args:
+        db: Database session
+        quiz_id: ID of the quiz to remove
+        
+    Returns:
+        Removed quiz object or None if not found
+    """
+    quiz = await get_quiz(db, quiz_id)
+    
+    if quiz:
+        await db.delete(quiz)
+        await db.flush()
+        await db.commit()
+        
     return quiz 

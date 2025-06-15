@@ -4,36 +4,25 @@ Zanim zaczniemy, zapoznaj się z poniższymi informacjami:
 
 1. Route API specification:
 <route_api_specification>
-#### PUT /quizzes/{quiz_id}
+#### POST /quizzes/{quiz_id}/check-answer
 
-- **Description**: Updates a quiz. Used by admins to edit questions/answers and to change the status from 'draft' to 'published'.
-- **Authentication**: Required (Admin only).
+- **Description**: Checks a single answer for a student, providing immediate feedback and an AI-generated explanation without persisting data.
+- **Authentication**: Required (Student only).
 - **Request Body**:
   ```json
   {
-    "title": "Nowy Tytuł Quizu",
-    "status": "published", // Optional: change status
-    "level_id": 4,
-    "questions": [
-      {
-        "id": 1, // Include ID for existing questions
-        "text": "Zaktualizowane pytanie?",
-        "answers": [
-          {"id": 1, "text": "Zmieniona odp A", "is_correct": false},
-          {"id": 2, "text": "Zmieniona odp B", "is_correct": true}
-          // ... other answers
-        ]
-      },
-      {
-        "text": "Nowe pytanie?", // No ID for new questions
-        "answers": [
-            // ... new answers
-        ]
-      }
-    ]
+    "question_id": 1,
+    "answer_id": 2
   }
   ```
-- **Success Response**: `200 OK` (with the updated quiz object in the body).
+- **Success Response**: `200 OK`
+  ```json
+  {
+    "is_correct": true,
+    "correct_answer_id": 2,
+    "explanation": "Bolesław Chrobry został koronowany w 1025 roku, co czyni go pierwszym królem Polski."
+  }
+  ```
 - **Error Response**: `404 Not Found`, `422 Unprocessable Entity`.
 
 </route_api_specification>
@@ -214,4 +203,4 @@ Końcowym wynikiem powinien być dobrze zorganizowany plan wdrożenia w formacie
 
 Końcowe wyniki powinny składać się wyłącznie z planu wdrożenia w formacie markdown i nie powinny powielać ani powtarzać żadnej pracy wykonanej w sekcji analizy.
 
-Pamiętaj, aby zapisać swój plan wdrożenia jako doc/endpoint-quizzes-load-put-plan.md. Upewnij się, że plan jest szczegółowy, przejrzysty i zapewnia kompleksowe wskazówki dla zespołu programistów.
+Pamiętaj, aby zapisać swój plan wdrożenia jako doc/endpoint-quizzes-check-answer-plan.md. Upewnij się, że plan jest szczegółowy, przejrzysty i zapewnia kompleksowe wskazówki dla zespołu programistów.

@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, patch, MagicMock, ANY
 from httpx import AsyncClient
 from fastapi import status, HTTPException
 from typing import List
@@ -135,6 +135,12 @@ def mock_get_quiz_by_id():
 def mock_update_quiz():
     """Mock the quiz_service.update_quiz method"""
     with patch("app.routers.quizzes.quiz_service.update_quiz") as mock:
+        yield mock
+
+@pytest.fixture
+def mock_remove_quiz():
+    """Mock the remove_quiz function from crud module"""
+    with patch("app.routers.quizzes.remove_quiz") as mock:
         yield mock
 
 @pytest.mark.asyncio
@@ -656,4 +662,86 @@ async def test_update_quiz_server_error(authenticated_user, mock_update_quiz):
     assert "unexpected error" in response.json()["detail"].lower()
     
     # Verify service call
-    mock_update_quiz.assert_called_once() 
+    mock_update_quiz.assert_called_once()
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("authenticated_user", [TEST_USER_ADMIN], indirect=True)
+async def test_delete_quiz_success(authenticated_user, mock_get_quiz_by_id, mock_remove_quiz):
+    """Test successful quiz deletion as admin"""
+    # Arrange
+    quiz_id = 1
+    mock_get_quiz_by_id.return_value = TEST_GENERATED_QUIZ
+    mock_remove_quiz.return_value = TEST_GENERATED_QUIZ
+    
+    # Act
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.delete(f"/api/v1/quizzes/{quiz_id}")
+    
+    # Assert
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    assert response.content == b''  # No content in response body
+    
+    # Verify service calls
+    mock_get_quiz_by_id.assert_called_once_with(db=ANY, quiz_id=quiz_id)
+    mock_remove_quiz.assert_called_once_with(db=ANY, quiz_id=quiz_id)
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("authenticated_user", [TEST_USER_ADMIN], indirect=True)
+async def test_delete_quiz_not_found(authenticated_user, mock_get_quiz_by_id):
+    """Test quiz deletion when quiz not found"""
+    # Arrange
+    quiz_id = 999
+    mock_get_quiz_by_id.side_effect = HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="Quiz not found"
+    )
+    
+    # Act
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.delete(f"/api/v1/quizzes/{quiz_id}")
+    
+    # Assert
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.json()["detail"] == "Quiz not found"
+    
+    # Verify service call
+    mock_get_quiz_by_id.assert_called_once_with(db=ANY, quiz_id=quiz_id)
+
+@pytest.mark.asyncio
+async def test_delete_quiz_unauthorized():
+    """Test quiz deletion without authentication"""
+    # Act
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.delete("/api/v1/quizzes/1")
+    
+    # Assert
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("authenticated_user", [TEST_USER_STUDENT], indirect=True)
+async def test_delete_quiz_forbidden(authenticated_user):
+    """Test quiz deletion as student (should be forbidden)"""
+    # Act
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.delete("/api/v1/quizzes/1")
+    
+    # Assert
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert "Not enough permissions" in response.json()["detail"]
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("authenticated_user", [TEST_USER_ADMIN], indirect=True)
+async def test_delete_quiz_server_error(authenticated_user, mock_get_quiz_by_id, mock_remove_quiz):
+    """Test quiz deletion with server error"""
+    # Arrange
+    quiz_id = 1
+    mock_get_quiz_by_id.return_value = TEST_GENERATED_QUIZ
+    mock_remove_quiz.side_effect = Exception("Database error")
+    
+    # Act
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.delete(f"/api/v1/quizzes/{quiz_id}")
+    
+    # Assert
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert "An unexpected error occurred" in response.json()["detail"] 

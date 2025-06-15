@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional, Literal
 import logging
@@ -12,7 +12,7 @@ from ..schemas.quiz import (
     QuizReadDetail, QuizReadDetailStudent, QuizUpdate
 )
 from ..models.user import User
-from ..crud.quiz import get_quizzes
+from ..crud.quiz import get_quizzes, remove_quiz
 
 logger = logging.getLogger(__name__)
 
@@ -205,6 +205,46 @@ async def update_quiz(
     except Exception as e:
         # Handle unexpected errors
         logger.exception(f"Unexpected error during quiz update: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred"
+        )
+
+@router.delete(
+    "/{quiz_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a quiz",
+    description="Delete a quiz with all related questions, answers, and results. Only admin users can delete quizzes."
+)
+async def delete_quiz(
+    quiz_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_admin)
+):
+    """
+    Delete a quiz
+    
+    - **quiz_id**: ID of the quiz to delete
+    
+    Only admin users can use this endpoint.
+    The operation is irreversible and will delete all related data.
+    """
+    try:
+        # Check if quiz exists
+        quiz = await quiz_service.get_quiz_by_id(db=db, quiz_id=quiz_id)
+        
+        # Delete the quiz
+        await remove_quiz(db=db, quiz_id=quiz_id)
+        
+        # Return no content
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+        
+    except HTTPException as e:
+        # Re-raise HTTP exceptions from service
+        raise e
+    except Exception as e:
+        # Handle unexpected errors
+        logger.exception(f"Unexpected error deleting quiz {quiz_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An unexpected error occurred"

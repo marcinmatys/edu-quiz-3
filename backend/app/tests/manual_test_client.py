@@ -132,6 +132,21 @@ class APIClient:
                     print(f"Response: {e.response.text}")
                 return {"error": str(e)}
 
+    async def delete_quiz(self, quiz_id: int) -> Dict[str, Any]:
+        """Delete a quiz by ID"""
+        url = f"{self.base_url}/api/v1/quizzes/{quiz_id}"
+        
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.delete(url, headers=self.headers)
+                response.raise_for_status()
+                return {"success": True, "message": f"Quiz {quiz_id} deleted successfully"}
+            except httpx.HTTPStatusError as e:
+                print(f"Error deleting quiz {quiz_id}: {e}")
+                if e.response:
+                    print(f"Response: {e.response.text}")
+                return {"error": str(e)}
+
 
 async def main():
     """Main function to run the API client"""
@@ -158,6 +173,7 @@ async def main():
         print("3. Create a new quiz")
         print("4. Get quiz by ID")
         print("5. Edit quiz by ID")
+        print("6. Delete quiz by ID")
         print("0. Exit")
         
         choice = input("\nEnter your choice: ")
@@ -383,6 +399,26 @@ async def main():
             result = await client.edit_quiz(quiz_id, update_data)
             print("\n--- Updated Quiz ---")
             print(json.dumps(result, indent=2))
+            
+        elif choice == "6":
+            print("\n--- Delete Quiz ---")
+            try:
+                quiz_id = int(input("Enter quiz ID to delete: "))
+            except ValueError:
+                print("Invalid quiz ID.")
+                continue
+            
+            # Confirm deletion
+            confirm = input(f"Are you sure you want to delete quiz {quiz_id}? (yes/no): ").strip().lower()
+            if confirm not in ["yes", "y"]:
+                print("Deletion cancelled.")
+                continue
+            
+            result = await client.delete_quiz(quiz_id)
+            if "error" in result:
+                print(f"Failed to delete quiz: {result['error']}")
+            else:
+                print(f"Quiz {quiz_id} deleted successfully.")
         
         elif choice == "0":
             print("Exiting...")
