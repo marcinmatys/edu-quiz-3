@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
@@ -23,6 +23,7 @@ export const useQuizEngine = (quizId: string) => {
   const [checkedAnswerInfo, setCheckedAnswerInfo] = useState<AnswerCheckResponseDto | null>(null);
   const [selectedAnswerId, setSelectedAnswerId] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [shuffledAnswers, setShuffledAnswers] = useState<AnswerReadStudentDto[]>([]);
 
   // Fetch quiz data
   const quizQuery = useQuery({
@@ -39,6 +40,23 @@ export const useQuizEngine = (quizId: string) => {
     },
     retry: 1, // Retry once before showing error
   });
+
+  // Shuffle answers when current question changes
+  useEffect(() => {
+    if (currentQuestion?.answers) {
+      setShuffledAnswers(shuffleArray([...currentQuestion.answers]));
+    }
+  }, [currentQuestionIndex, quizQuery.data]);
+
+  // Fisher-Yates shuffle algorithm
+  const shuffleArray = <T>(array: T[]): T[] => {
+    const newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+    return newArray;
+  };
 
   // Mutation for checking answers
   const checkAnswerMutation = useMutation({
@@ -91,7 +109,7 @@ export const useQuizEngine = (quizId: string) => {
   const currentQuestion = quizQuery.data?.questions?.[currentQuestionIndex];
 
   // Calculate answer states for UI
-  const answerStates: AnswerStateViewModel[] = currentQuestion?.answers.map((answer: AnswerReadStudentDto) => {
+  const answerStates: AnswerStateViewModel[] = shuffledAnswers.map((answer: AnswerReadStudentDto) => {
     let status: AnswerStatus = "default";
 
     if (selectedAnswerId === answer.id) {
