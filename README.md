@@ -10,12 +10,10 @@ An educational application for creating and conducting interactive, AI-powered q
 2. [Tech Stack](#tech-stack)
 3. [Project Structure](#project-structure)
 4. [Getting Started Locally](#getting-started-locally)
-5. [Available Scripts](#available-scripts)
-6. [Development Notes](#development-notes)
-7. [User Interface](#user-interface)
-8. [Project Scope](#project-scope)
-9. [Project Status](#project-status)
-10. [Development Information/Statistics](#development-informationstatistics)
+5. [User Interface](#user-interface)
+6. [Project Scope](#project-scope)
+7. [Project Status](#project-status)
+8. [Development Information/Statistics](#development-informationstatistics)
 11. [License](#license)
 
 ## Project Description
@@ -131,18 +129,7 @@ You can use the following credentials to log in and test the application:
     -   **Username:** `student`
     -   **Password:** `student123`
 
-## Available Scripts
 
-In the `frontend` directory, you can run the following scripts:
-
--   `npm run dev`: Starts the development server with Vite.
--   `npm run build`: Builds the application for production.
--   `npm run lint`: Lints the source code using ESLint.
--   `npm run preview`: Starts a local server to preview the production build.
-
-## Development Notes
-- Frontend and backend run on separate development servers.
-- CORS is enabled on the backend for local development to allow requests from the frontend.
 
 ## User Interface
 
